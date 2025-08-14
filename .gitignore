@@ -25,3 +25,4 @@ build
 *.sw?
 .vite-cache/
 .early.coverage
+.env

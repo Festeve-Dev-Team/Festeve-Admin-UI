@@ -94,6 +94,162 @@ const appsRoute: Routes = [
         component: lazy(() => import('@/views/sales/ProductList')),
         authority: [ADMIN, USER],
     },
+    // V2 sales routes (non-breaking, separate namespace)
+    {
+        key: 'appsSalesV2.productList',
+        path: `${APP_PREFIX_PATH}/sales-v2/product-list`,
+        component: lazy(() => import('@/views/salesV2/ProductListV2')),
+        authority: [ADMIN, USER],
+        meta: { header: 'Product List V2' },
+    },
+    {
+        key: 'appsSalesV2.productNew',
+        path: `${APP_PREFIX_PATH}/sales-v2/product-new`,
+        component: lazy(() => import('@/views/salesV2/ProductCreateV2')),
+        authority: [ADMIN, USER],
+        meta: { header: 'Add New Product (V2)' },
+    },
+    {
+        key: 'appsSalesV2.productEdit',
+        path: `${APP_PREFIX_PATH}/sales-v2/product-edit/:productId`,
+        component: lazy(() => import('@/views/salesV2/ProductEditV2')),
+        authority: [ADMIN, USER],
+        meta: { header: 'Edit Product (V2)' },
+    },
+    // Purohits V2
+    {
+        key: 'appsPurohitsV2.list',
+        path: `${APP_PREFIX_PATH}/purohits-v2/purohit-list`,
+        component: lazy(() => import('@/views/purohitsV2/PurohitListV2')),
+        authority: [ADMIN, USER],
+        meta: { header: 'Purohits V2' },
+    },
+    {
+        key: 'appsPurohitsV2.new',
+        path: `${APP_PREFIX_PATH}/purohits-v2/purohit-new`,
+        component: lazy(() => import('@/views/purohitsV2/PurohitCreateV2')),
+        authority: [ADMIN, USER],
+        meta: { header: 'Add New Purohit (V2)' },
+    },
+    {
+        key: 'appsPurohitsV2.edit',
+        path: `${APP_PREFIX_PATH}/purohits-v2/purohit-edit/:purohitId`,
+        component: lazy(() => import('@/views/purohitsV2/PurohitEditV2')),
+        authority: [ADMIN, USER],
+        meta: { header: 'Edit Purohit (V2)' },
+    },
+    // Events V2
+    {
+        key: 'appsEventsV2.list',
+        path: `${APP_PREFIX_PATH}/events-v2/event-list`,
+        component: lazy(() => import('@/views/eventsV2/EventListV2')),
+        authority: [ADMIN, USER],
+        meta: { header: 'Events V2' },
+    },
+    {
+        key: 'appsEventsV2.new',
+        path: `${APP_PREFIX_PATH}/events-v2/event-new`,
+        component: lazy(() => import('@/views/eventsV2/EventCreateV2')),
+        authority: [ADMIN, USER],
+        meta: { header: 'Add New Event (V2)' },
+    },
+    {
+        key: 'appsEventsV2.edit',
+        path: `${APP_PREFIX_PATH}/events-v2/event-edit/:eventId`,
+        component: lazy(() => import('@/views/eventsV2/EventEditV2')),
+        authority: [ADMIN, USER],
+        meta: { header: 'Edit Event (V2)' },
+    },
+    // Offers V2
+    {
+        key: 'appsOffersV2.list',
+        path: `${APP_PREFIX_PATH}/offers-v2/offer-list`,
+        component: lazy(() => import('@/views/offersV2/OfferListV2')),
+        authority: [ADMIN, USER],
+        meta: { header: 'Offers V2' },
+    },
+    {
+        key: 'appsOffersV2.new',
+        path: `${APP_PREFIX_PATH}/offers-v2/offer-new`,
+        component: lazy(() => import('@/views/offersV2/OfferCreateV2')),
+        authority: [ADMIN, USER],
+        meta: { header: 'Add New Offer (V2)' },
+    },
+    {
+        key: 'appsOffersV2.edit',
+        path: `${APP_PREFIX_PATH}/offers-v2/offer-edit/:offerId`,
+        component: lazy(() => import('@/views/offersV2/OfferEditV2')),
+        authority: [ADMIN, USER],
+        meta: { header: 'Edit Offer (V2)' },
+    },
+    // Homepage V2
+    {
+        key: 'appsHomepageV2.configure',
+        path: `${APP_PREFIX_PATH}/homepage-v2/configure`,
+        component: lazy(() => import('@/views/homepageV2/HomepageConfigureV2')),
+        authority: [ADMIN, USER],
+        meta: { header: 'Homepage Configure (V2)' },
+    },
+    // Bookings V2
+    {
+        key: 'appsBookingsV2.list',
+        path: `${APP_PREFIX_PATH}/bookings-v2/booking-list`,
+        component: lazy(() => import('@/views/bookingsV2/BookingListV2')),
+        authority: [ADMIN, USER],
+        meta: { header: 'Bookings V2' },
+    },
+    {
+        key: 'appsBookingsV2.new',
+        path: `${APP_PREFIX_PATH}/bookings-v2/booking-new`,
+        component: lazy(() => import('@/views/bookingsV2/BookingCreateV2')),
+        authority: [ADMIN, USER],
+        meta: { header: 'Add New Booking (V2)' },
+    },
+    {
+        key: 'appsBookingsV2.edit',
+        path: `${APP_PREFIX_PATH}/bookings-v2/booking-edit/:bookingId`,
+        component: lazy(() => import('@/views/bookingsV2/BookingEditV2')),
+        authority: [ADMIN, USER],
+        meta: { header: 'Edit Booking (V2)' },
+    },
+    // Payments V2
+    {
+        key: 'appsPaymentsV2.list',
+        path: `${APP_PREFIX_PATH}/payments-v2/payment-list`,
+        component: lazy(() => import('@/views/paymentsV2/PaymentListV2')),
+        authority: [ADMIN, USER],
+        meta: { header: 'Payments V2' },
+    },
+    {
+        key: 'appsPaymentsV2.new',
+        path: `${APP_PREFIX_PATH}/payments-v2/payment-new`,
+        component: lazy(() => import('@/views/paymentsV2/PaymentCreateV2')),
+        authority: [ADMIN, USER],
+        meta: { header: 'Add New Payment (V2)' },
+    },
+    {
+        key: 'appsPaymentsV2.edit',
+        path: `${APP_PREFIX_PATH}/payments-v2/payment-edit/:paymentId`,
+        component: lazy(() => import('@/views/paymentsV2/PaymentEditV2')),
+        authority: [ADMIN, USER],
+        meta: { header: 'Edit Payment (V2)' },
+    },
+    // Delivery Slots V2
+    {
+        key: 'appsDeliverySlotsV2.create',
+        path: `${APP_PREFIX_PATH}/delivery-v2/slot-new`,
+        component: lazy(() => import('@/views/deliverySlotsV2/SlotCreateV2')),
+        authority: [ADMIN, USER],
+        meta: { header: 'New Delivery Slot (V2)' },
+    },
+    // Vendors V2
+    {
+        key: 'appsVendorsV2.new',
+        path: `${APP_PREFIX_PATH}/vendors-v2/vendor-new`,
+        component: lazy(() => import('@/views/vendorsV2/VendorCreateV2')),
+        authority: [ADMIN, USER],
+        meta: { header: 'New Vendor (V2)' },
+    },
     {
         key: 'appsSales.productEdit',
         path: `${APP_PREFIX_PATH}/sales/product-edit/:productId`,

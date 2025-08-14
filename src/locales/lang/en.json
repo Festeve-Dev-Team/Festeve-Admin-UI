@@ -20,10 +20,53 @@
             "sales": "Sales",
             "dashboard": "Dashboard",
             "productList": "Product List",
+            "productListV2": "Product List V2",
             "productEdit": "Product Edit",
             "productNew": "New Product",
+            "productNewV2": "New Product V2",
             "orderList": "Order List",
             "orderDetails": "Order Details"
+        },
+        "appsSalesV2": {
+            "productListV2": "Product List V2",
+            "productNewV2": "New Product V2"
+        },
+        "appsPurohits": {
+            "purohits": "Purohits",
+            "purohitsListV2": "Purohits V2",
+            "purohitNewV2": "New Purohit V2"
+        },
+        "appsEvents": {
+            "events": "Events",
+            "eventsListV2": "Events V2",
+            "eventNewV2": "New Event V2"
+        },
+        "appsOffers": {
+            "offers": "Offers",
+            "offersListV2": "Offers V2",
+            "offerNewV2": "New Offer V2"
+        },
+        "appsHomepage": {
+            "homepage": "Homepage",
+            "configureV2": "Homepage Configure V2"
+        },
+        "appsBookings": {
+            "bookings": "Bookings",
+            "bookingsListV2": "Bookings V2",
+            "bookingNewV2": "New Booking V2"
+        },
+        "appsPayments": {
+            "payments": "Payments",
+            "paymentsListV2": "Payments V2",
+            "paymentNewV2": "New Payment V2"
+        },
+        "appsDelivery": {
+            "delivery": "Delivery",
+            "slotNewV2": "New Slot V2"
+        },
+        "appsVendors": {
+            "vendors": "Vendors",
+            "vendorNewV2": "New Vendor V2"
         },
         "appsCrypto": {
             "crypto": "Crypto",

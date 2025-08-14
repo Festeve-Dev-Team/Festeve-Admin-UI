@@ -1,0 +1,540 @@
+import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
+import api from '@/api/axios'
+import { setToken, clearToken } from '@/utils/cookies'
+import appConfig from '@/configs/app.config'
+
+interface ErrorResponse {
+    message?: string
+    [key: string]: any
+}
+
+interface OtpResponse {
+    otpSentTo?: string
+    message?: string
+    user?: User
+    token?: string
+}
+
+export type SignUpPayload = {
+    name: string
+    email: string
+    phone: string
+    provider: string
+    providerUserId: string
+    password: string
+    profilePicture: string
+    referralCode?: string
+}
+
+type User = { _id: string; email: string; role: string; [k: string]: unknown }
+
+type AuthState = {
+    user: User | null
+    status: 'idle' | 'loading' | 'error'
+    error: string | null
+    otpStep: { pending: boolean; identifier?: string; signupData?: SignUpPayload } | null
+}
+
+const initialState: AuthState = {
+    user: null,
+    status: 'idle',
+    error: null,
+    otpStep: null,
+}
+
+// Async Thunks
+export const signup = createAsyncThunk(
+    'authV2/signup',
+    async (payload: SignUpPayload, { rejectWithValue }) => {
+        try {
+            const response = await api.post('/auth/signup', payload)
+            return response.data
+        } catch (error: any) {
+            return rejectWithValue({ message: error.response?.data?.message || error.message })
+        }
+    }
+)
+
+export const verifyOtp = createAsyncThunk(
+    'authV2/verifyOtp',
+    async ({ identifier, code, signupData }: { identifier: string; code: string; signupData: SignUpPayload }, { rejectWithValue }) => {
+        try {
+            const response = await api.post('/auth/verify-otp', {
+                identifier,
+                code,
+                signupData
+            })
+            
+            if (response.data?.token) {
+                setToken(response.data.token)
+                return response.data
+            }
+
+            const loginResponse = await api.post('/auth/login', {
+                email: signupData.email,
+                password: signupData.password
+            })
+
+            if (loginResponse.data?.token) {
+                setToken(loginResponse.data.token)
+                return loginResponse.data
+            }
+
+            return rejectWithValue({ message: 'Failed to authenticate after OTP verification' })
+        } catch (error: any) {
+            return rejectWithValue({ message: error.response?.data?.message || error.message })
+        }
+    }
+)
+
+export const login = createAsyncThunk(
+    'authV2/login',
+    async (credentials: { email: string; password: string }, { rejectWithValue }) => {
+        try {
+            const response = await api.post('/auth/login', credentials)
+            if (response.data?.token) {
+                setToken(response.data.token)
+                return response.data
+            }
+            return rejectWithValue({ message: 'No token received from server' })
+        } catch (error: any) {
+            return rejectWithValue({ message: error.response?.data?.message || error.message })
+        }
+    }
+)
+
+export const logout = createAsyncThunk(
+    'authV2/logout',
+    async (_, { rejectWithValue }) => {
+        try {
+            clearToken()
+            window.location.replace(appConfig.unAuthenticatedEntryPath)
+            return true
+        } catch (error: any) {
+            return rejectWithValue({ message: error.message })
+        }
+    }
+)
+
+const authV2Slice = createSlice({
+    name: 'authV2',
+    initialState,
+    reducers: {
+        clearError: (state) => {
+            state.error = null
+        },
+        clearOtpStep: (state) => {
+            state.otpStep = null
+        },
+        setUser: (state, action: PayloadAction<User | null>) => {
+            state.user = action.payload
+        }
+    },
+    extraReducers: (builder) => {
+        builder
+            // Signup
+            .addCase(signup.pending, (state) => {
+                state.status = 'loading'
+                state.error = null
+            })
+            .addCase(signup.fulfilled, (state, action) => {
+                state.status = 'idle'
+                if (action.payload?.message?.includes('OTP sent')) {
+                    state.otpStep = {
+                        pending: true,
+                        identifier: action.payload.otpSentTo,
+                        signupData: action.meta.arg
+                    }
+                }
+            })
+            .addCase(signup.rejected, (state, action) => {
+                state.status = 'error'
+                state.error = action.payload?.message || 'Signup failed'
+            })
+
+            // Verify OTP
+            .addCase(verifyOtp.pending, (state) => {
+                state.status = 'loading'
+                state.error = null
+            })
+            .addCase(verifyOtp.fulfilled, (state, action) => {
+                state.status = 'idle'
+                if (action.payload?.user) {
+                    state.user = action.payload.user
+                }
+                state.otpStep = null
+            })
+            .addCase(verifyOtp.rejected, (state, action) => {
+                state.status = 'error'
+                state.error = action.payload?.message || 'OTP verification failed'
+            })
+
+            // Login
+            .addCase(login.pending, (state) => {
+                state.status = 'loading'
+                state.error = null
+            })
+            .addCase(login.fulfilled, (state, action) => {
+                state.status = 'idle'
+                if (action.payload?.user) {
+                    state.user = action.payload.user
+                }
+            })
+            .addCase(login.rejected, (state, action) => {
+                state.status = 'error'
+                state.error = action.payload?.message || 'Login failed'
+            })
+
+            // Logout
+            .addCase(logout.pending, (state) => {
+                state.status = 'loading'
+            })
+            .addCase(logout.fulfilled, (state) => {
+                state.status = 'idle'
+                state.user = null
+                state.otpStep = null
+            })
+            .addCase(logout.rejected, (state, action) => {
+                state.status = 'error'
+                state.error = action.payload?.message || 'Logout failed'
+            })
+    }
+})
+
+export const { clearError, clearOtpStep, setUser } = authV2Slice.actions
+export default authV2Slice.reducer
+
+// Export async thunks
+export const signup = createAsyncThunk(
+    'authV2/signup',
+    async (payload: SignUpPayload, { rejectWithValue }) => {
+        try {
+            const cleanPayload = {
+                name: payload.name,
+                email: payload.email,
+                phone: payload.phone,
+                provider: payload.provider,
+                providerUserId: payload.providerUserId,
+                password: payload.password,
+                profilePicture: payload.profilePicture,
+                ...(payload.referralCode && { referralCode: payload.referralCode }),
+            }
+            
+            const response = await api.post('/auth/signup', cleanPayload)
+            return response.data
+        } catch (error: any) {
+            return rejectWithValue(error.response?.data || { message: error.message })
+        }
+    }
+)
+
+export const verifyOtp = createAsyncThunk(
+    'authV2/verifyOtp',
+    async ({ identifier, code, signupData }: { identifier: string; code: string; signupData: SignUpPayload }, { rejectWithValue }) => {
+        try {
+            const response = await api.post('/auth/verify-otp', {
+                identifier,
+                code,
+                signupData
+            })
+            
+            // If server returns token, save it
+            if (response.data?.token) {
+                setToken(response.data.token)
+                return response.data
+            }
+
+            // If no token, try auto-login
+            const loginResponse = await api.post('/auth/login', {
+                email: signupData.email,
+                password: signupData.password
+            })
+
+            if (loginResponse.data?.token) {
+                setToken(loginResponse.data.token)
+                return loginResponse.data
+            }
+
+            return rejectWithValue({ message: 'Failed to authenticate after OTP verification' })
+        } catch (error: any) {
+            return rejectWithValue(error.response?.data || { message: error.message })
+        }
+    }
+)
+
+export const login = createAsyncThunk(
+    'authV2/login',
+    async (credentials: { email: string; password: string }, { rejectWithValue }) => {
+        try {
+            const response = await api.post('/auth/login', credentials)
+            if (response.data?.token) {
+                setToken(response.data.token)
+                return response.data
+            }
+            return rejectWithValue({ message: 'No token received from server' })
+        } catch (error: any) {
+            return rejectWithValue(error.response?.data || { message: error.message })
+        }
+    }
+)
+
+export const logout = createAsyncThunk(
+    'authV2/logout',
+    async (_, { rejectWithValue }) => {
+        try {
+            clearToken()
+            return true
+        } catch (error: any) {
+            return rejectWithValue({ message: error.message })
+        }
+    }
+)
+            
+            // Make API call
+            console.log('Making API call...')
+            console.log('API instance config:', {
+                baseURL: api.defaults.baseURL,
+                timeout: api.defaults.timeout,
+                headers: api.defaults.headers
+            })
+            console.log('Request URL will be:', `${api.defaults.baseURL}/auth/signup`)
+            
+            let response
+            try {
+                console.log('Attempting axios.post with timeout...')
+                
+                // Use fetch to bypass Mirage and get real API response
+                console.log('Making direct fetch call...')
+                const fetchResponse = await fetch(`${api.defaults.baseURL}/auth/signup`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(getToken() ? { 'Authorization': `Bearer ${getToken()}` } : {})
+                    },
+                    body: JSON.stringify(cleanPayload)
+                })
+                
+                console.log('Fetch response status:', fetchResponse.status)
+                const fetchData = await fetchResponse.json()
+                console.log('Fetch response data:', fetchData)
+                
+                // Convert fetch response to axios-like format
+                response = {
+                    data: fetchData,
+                    status: fetchResponse.status,
+                    statusText: fetchResponse.statusText,
+                    headers: fetchResponse.headers
+                }
+                
+                console.log('axios.post completed successfully')
+            } catch (apiError) {
+                console.log('axios.post threw an error:', apiError)
+                console.log('Error details:', {
+                    name: apiError.name,
+                    message: apiError.message,
+                    code: apiError.code,
+                    response: apiError.response?.data,
+                    status: apiError.response?.status
+                })
+                throw apiError
+            }
+            
+            console.log('Signup API full response:', response)
+            console.log('Signup API response data:', response.data)
+            console.log('Signup API status:', response.status)
+            console.log('Signup API status text:', response.statusText)
+            
+            if (!response.data) {
+                console.error('No data received from server')
+                throw new Error('No data received from server')
+            }
+            
+            if (response.status < 200 || response.status >= 300) {
+                console.error('Non-success status code:', response.status)
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+            }
+            
+            console.log('About to return success from signup thunk')
+            return { data: response.data, payload }
+        } catch (e: any) {
+            console.log('Signup error caught:', e)
+            
+            if (e.message === 'Request timeout') {
+                return rejectWithValue('Request timed out. Please try again.')
+            }
+            
+            if (e.response) {
+                console.log('Error response:', e.response)
+                const msg = e.response.data?.message || 'Sign up failed'
+                return rejectWithValue(msg)
+            } else if (e.request) {
+                console.log('No response received:', e.request)
+                return rejectWithValue('No response from server. Please check your connection.')
+            } else {
+                console.log('Request setup error:', e.message)
+                return rejectWithValue(e.message || 'Sign up failed')
+            }
+        }
+    },
+)
+
+export const verifyOtp = createAsyncThunk(
+    'authV2/verifyOtp',
+    async (
+        args: { identifier: string; code: string },
+        { getState, rejectWithValue, dispatch },
+    ) => {
+        try {
+            console.log('VerifyOtp thunk called with:', args)
+            const state = getState() as { authV2: AuthState }
+            const signupData = state.authV2.otpStep?.signupData
+            console.log('Retrieved signupData from state:', signupData)
+            
+            if (!signupData) {
+                console.error('No signup data found in Redux state')
+                throw new Error('No signup data found')
+            }
+
+            const payload = {
+                identifier: args.identifier,
+                code: args.code,
+                signupData,
+            }
+            console.log('VerifyOtp API payload:', payload)
+            console.log('About to make VerifyOtp API call...')
+            
+            const { data } = await api.post('/auth/verify-otp', payload)
+            console.log('VerifyOtp API response:', data)
+            
+            // token optional; if provided, set and treat as logged-in
+            if (data?.token) {
+                console.log('Token received, setting user and token')
+                setToken(data.token)
+                dispatch(setUser(data.user))
+                return { loggedIn: true }
+            }
+            
+            // fallback: auto login
+            console.log('No token received, attempting auto-login with credentials')
+            await dispatch(
+                login({ email: signupData?.email as string, password: signupData?.password as string }),
+            )
+            return { loggedIn: true }
+        } catch (e: any) {
+            console.log('VerifyOtp error caught:', e)
+            if (e.response) {
+                console.log('VerifyOtp error response:', e.response.data)
+            }
+            const msg = e?.response?.data?.message || 'OTP verification failed'
+            return rejectWithValue(msg)
+        }
+    },
+)
+
+export const login = createAsyncThunk(
+    'authV2/login',
+    async (payload: { email: string; password: string }, { rejectWithValue }) => {
+        try {
+            const { data } = await api.post('/auth/login', payload)
+            if (data?.token) setToken(data.token)
+            // Navigate to authenticated entry path after successful login
+            if (typeof window !== 'undefined') {
+                window.location.replace(appConfig.authenticatedEntryPath)
+            }
+            return data
+        } catch (e: any) {
+            const msg = e?.response?.data?.message || 'Login failed'
+            return rejectWithValue(msg)
+        }
+    },
+)
+
+export const logout = createAsyncThunk(
+    'authV2/logout',
+    async (_, { dispatch }) => {
+        dispatch(clearAuthV2())
+        // Navigate to unauthenticated entry path after logout
+        if (typeof window !== 'undefined') {
+            window.location.replace(appConfig.unAuthenticatedEntryPath)
+        }
+    },
+)
+
+const slice = createSlice({
+    name: 'authV2',
+    initialState,
+    reducers: {
+        setUser(state, action: PayloadAction<User | null>) {
+            state.user = action.payload
+        },
+        setOtpStep(state, action: PayloadAction<{ pending: boolean; identifier?: string; signupData?: SignUpPayload } | null>) {
+            state.otpStep = action.payload
+        },
+        clearError(state) {
+            state.error = null
+            state.status = 'idle'
+        },
+        clearAuthV2(state) {
+            state.user = null
+            state.status = 'idle'
+            state.error = null
+            state.otpStep = null
+            clearToken()
+        },
+    },
+    extraReducers(builder) {
+        builder
+            .addCase(signup.pending, (s) => {
+                s.status = 'loading'
+                s.error = null
+            })
+            .addCase(signup.fulfilled, (s, a) => {
+                console.log('🚀 signup.fulfilled called!', a.payload)
+                s.status = 'idle'
+                const msg: string = a.payload.data?.message || ''
+                const email = a.payload.payload.email
+                console.log('signup.fulfilled - message:', msg)
+                console.log('signup.fulfilled - email:', email)
+                if (/OTP sent/i.test(msg)) {
+                    s.otpStep = { pending: true, identifier: email, signupData: a.payload.payload }
+                    console.log('signup.fulfilled - otpStep set to:', s.otpStep)
+                } else {
+                    console.log('signup.fulfilled - OTP pattern not matched in message:', msg)
+                }
+            })
+            .addCase(signup.rejected, (s, a) => {
+                console.log('❌ signup.rejected called!', a)
+                s.status = 'error'
+                s.error = String(a.payload || a.error.message)
+            })
+            .addCase(verifyOtp.pending, (s) => {
+                s.status = 'loading'
+                s.error = null
+            })
+            .addCase(verifyOtp.fulfilled, (s) => {
+                s.status = 'idle'
+                s.otpStep = null
+            })
+            .addCase(verifyOtp.rejected, (s, a) => {
+                s.status = 'error'
+                s.error = String(a.payload || a.error.message)
+            })
+            .addCase(login.pending, (s) => {
+                s.status = 'loading'
+                s.error = null
+            })
+            .addCase(login.fulfilled, (s, a) => {
+                s.status = 'idle'
+                s.user = a.payload?.user || null
+            })
+            .addCase(login.rejected, (s, a) => {
+                s.status = 'error'
+                s.error = String(a.payload || a.error.message)
+            })
+    },
+})
+
+export const { setUser, setOtpStep, clearError, clearAuthV2 } = slice.actions
+export default slice.reducer
+
+

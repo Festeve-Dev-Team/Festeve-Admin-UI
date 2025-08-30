@@ -43,7 +43,7 @@ const roles: {
 const Step4 = ({ onNext, onBack }: Step4Props) => {
     return (
         <div className="text-center">
-            <h3 className="mb-2">What is your main objective with Elstar?</h3>
+            <h3 className="mb-2">What is your main objective with Festeve?</h3>
             <div className="mt-8 max-w-[600px] lg:min-w-[600px] mx-auto">
                 <Formik
                     initialValues={{

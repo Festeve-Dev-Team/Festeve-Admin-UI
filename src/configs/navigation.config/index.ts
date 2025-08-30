@@ -7,10 +7,10 @@ import type { NavigationTree } from '@/@types/navigation'
 
 const navigationConfig: NavigationTree[] = [
     ...appsNavigationConfig,
-    ...uiComponentNavigationConfig,
-    ...pagesNavigationConfig,
-    ...authNavigationConfig,
-    ...docNavigationConfig,
+    // ...uiComponentNavigationConfig,
+    // ...pagesNavigationConfig,
+    // ...authNavigationConfig,
+    // ...docNavigationConfig,
 ]
 
 export default navigationConfig

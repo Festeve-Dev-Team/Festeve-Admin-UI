@@ -10,7 +10,7 @@ const Authentication = () => {
     return (
         <>
             <p>
-                Elstar provides an implementation for JWT authorization that
+                Festeve provides an implementation for JWT authorization that
                 allows you to quickly link up your backend services.
             </p>
             <p>

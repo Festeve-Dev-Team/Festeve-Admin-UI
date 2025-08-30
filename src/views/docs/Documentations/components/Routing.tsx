@@ -6,7 +6,7 @@ const RouteAndNav = () => {
     return (
         <>
             <p>
-                Elstar use{' '}
+                Festeve use{' '}
                 <a
                     href="https://reactrouter.com/"
                     target="_blank"
@@ -69,7 +69,7 @@ export const protectedRoutes = [
             <div className="mt-10" id="authority">
                 <h5>Authority</h5>
                 <p className="mt-1">
-                    Elstar routes comes with a simple role based access control,
+                    Festeve routes comes with a simple role based access control,
                     you can set accessible roles as Array to{' '}
                     <code>authority</code> field. Taking following code as
                     example, the route only available for user who have either{' '}

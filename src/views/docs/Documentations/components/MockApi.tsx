@@ -11,7 +11,7 @@ const MockApi = () => {
                 testing.
             </p>
             <p>
-                Elstar uses{' '}
+                Festeve uses{' '}
                 <a
                     href="https://miragejs.com/"
                     target="_blank"

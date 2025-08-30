@@ -19,7 +19,7 @@ export type Purohit = {
     skills: string[]
     availability: Availability[]
     bio: string
-    customSkills: Record<string, string | number>
+    customSkills: Record<string, string | number | string[]>
     rituals: string[]
     languages: string[]
     chargesCommission: boolean

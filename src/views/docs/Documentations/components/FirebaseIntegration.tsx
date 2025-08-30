@@ -378,7 +378,7 @@ const SignUpForm = (props: SignUpFormProps) => {
                     By following these steps, you have successfully integrated
                     Firebase SDK auth with to the template. You can leverage the
                     powerful features offered by Firebase to enhance the
-                    functionality and user experience along with Elstar.
+                    functionality and user experience along with Festeve.
                 </p>
                 <p>
                     Make sure to refer to the{' '}

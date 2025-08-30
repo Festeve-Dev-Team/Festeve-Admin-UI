@@ -4,7 +4,7 @@ import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import { HiOutlineSearch } from 'react-icons/hi'
 import DataTable, { type ColumnDef, type DataTableResetHandle } from '@/components/shared/DataTable'
-import { listPurohits } from './services/purohitApi'
+import { getPurohits } from './services/purohitApi'
 import type { PurohitWithId } from './types/purohit'
 import { useNavigate } from 'react-router-dom'
 
@@ -17,8 +17,11 @@ export default function PurohitListV2() {
 
     useEffect(() => {
         setLoading(true)
-        listPurohits().then((data) => {
-            setRows(data)
+        getPurohits().then((response) => {
+            setRows(response.purohits)
+            setLoading(false)
+        }).catch((error) => {
+            console.error('Failed to load purohits:', error)
             setLoading(false)
         })
     }, [])

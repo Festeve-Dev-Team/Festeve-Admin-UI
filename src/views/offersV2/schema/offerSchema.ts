@@ -53,9 +53,9 @@ export const offerSchema = z
         if (s > e) {
             ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['endDate'], message: 'End must be after start' })
         }
-        const now = istNow().getTime()
+        const now = new Date().getTime()
         if (e < now) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['endDate'], message: 'Offer already ended (IST)', fatal: false })
+            console.warn('⚠️ Offer end date appears to be in the past:', data.endDate)
         }
 
         if (data.maxGroupSize < data.minGroupSize) {
@@ -73,11 +73,11 @@ export const defaultOfferValues: OfferFormInput = {
     discountValue: 20,
     comboItems: [],
     appliesTo: 'product',
-    targetIds: ['prod_1'],
+    targetIds: ['66b9f1b7c8e2f4a1d2345678'],
     minGroupSize: 1,
     maxGroupSize: 1,
-    startDate: new Date('2025-08-10T13:32:43.600Z').toISOString(),
-    endDate: new Date('2025-08-10T13:32:43.600Z').toISOString(),
+    startDate: new Date('2025-08-12T07:16:21.499Z').toISOString(),
+    endDate: new Date('2025-09-12T07:16:21.499Z').toISOString(),
     combinable: false,
     conditions: {},
 }

@@ -4,7 +4,18 @@ import { useNavigate } from 'react-router-dom'
 
 export default function VendorCreateV2() {
     const navigate = useNavigate()
-    return <VendorFormV2 initial={defaultVendorValues} headerTitle="New Vendor" />
+
+    const handleSaved = () => {
+        navigate('/app/vendors-v2/vendor-list')
+    }
+
+    return (
+        <VendorFormV2 
+            initial={defaultVendorValues} 
+            onSaved={handleSaved}
+            headerTitle="New Vendor" 
+        />
+    )
 }
 
 

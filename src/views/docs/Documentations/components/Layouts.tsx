@@ -15,7 +15,7 @@ const Layouts = () => {
     return (
         <>
             <p>
-                Elstar provide 6 types of app layouts & 3 types of auth layouts,
+                Festeve provide 6 types of app layouts & 3 types of auth layouts,
                 all layouts component can be found under directory{' '}
                 <code>src/components/layout/*</code>
                 and all the components used within layouts can be found under{' '}

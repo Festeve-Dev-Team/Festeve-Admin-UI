@@ -275,7 +275,7 @@ export default yourSlice.reducer`}</SyntaxHighlighter>
                 <h5>RTK Query</h5>
                 <p className="mt-1">
                     RTK Query is an exceptionally robust data fetching and
-                    caching tool along with Redux toolkit. In Elstar, we have
+                    caching tool along with Redux toolkit. In Festeve, we have
                     further enhanced its functionality by encapsulating a
                     pre-configured RTK Query setup within the{' '}
                     <code>src/service/RtkQueryService.ts</code>. If you prefer

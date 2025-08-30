@@ -1,6 +1,7 @@
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import { FormContainer, FormItem } from '@/components/ui/Form'
+import ProductSelector from './ProductSelector'
 
 type Row = { productId: string; relation: string }
 
@@ -38,8 +39,12 @@ export default function LinkedProductsEditor({ value, onChange }: Props) {
             <div className="space-y-2">
                 {value.map((row, i) => (
                     <div key={i} className="grid grid-cols-1 md:grid-cols-3 gap-2 items-end">
-                        <FormItem label="Product ID">
-                            <Input value={row.productId} onChange={(e) => updateRow(i, 'productId', e.target.value)} />
+                        <FormItem label="Product">
+                            <ProductSelector 
+                                value={row.productId} 
+                                onChange={(id) => updateRow(i, 'productId', id)}
+                                placeholder="Search and select product..."
+                            />
                         </FormItem>
                         <FormItem label="Relation">
                             <select className="input" value={row.relation} onChange={(e) => updateRow(i, 'relation', e.target.value)}>

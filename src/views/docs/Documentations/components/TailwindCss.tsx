@@ -8,7 +8,7 @@ const TailwindCss = () => {
                 Tailwind CSS is a utility-first CSS framework with predefined
                 classes that you can use to build and design the UI directly in
                 the JSX. We use Tailwind as our core CSS framework, most of the
-                UI in Elstar is built entirely with it features, so you can
+                UI in Festeve is built entirely with it features, so you can
                 easily update the theme & base by altering{' '}
                 <code>tailwind.config.cjs</code> under the root directory.
             </p>

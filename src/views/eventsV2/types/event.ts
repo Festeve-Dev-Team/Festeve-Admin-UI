@@ -21,6 +21,7 @@ export type EventDto = {
     region?: string
     regions: string[]
     specialOffers: SpecialOffer[]
+    productIds: string[] // General product associations
     extraData: Record<string, unknown>
 }
 

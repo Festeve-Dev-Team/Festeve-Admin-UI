@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { offerSchema, defaultOfferValues, type OfferFormInput } from './schema/offerSchema'
-import { saveOffer } from './services/offerApi'
+import { formToApiData, validateFormForSubmission } from './utils/dataTransform'
+import { useNavigate } from 'react-router-dom'
+import type { OfferWithId } from './types/offer'
 
 import { FormContainer, FormItem } from '@/components/ui/Form'
 import Input from '@/components/ui/Input'
@@ -10,43 +12,184 @@ import Button from '@/components/ui/Button'
 import Tabs from '@/components/ui/Tabs'
 import Card from '@/components/ui/Card'
 import Tag from '@/components/ui/Tag'
+import Alert from '@/components/ui/Alert'
 
 import DiscountRuleEditor from './components/DiscountRuleEditor'
 import TargetSelector from './components/TargetSelector'
 import ScheduleEditor from './components/ScheduleEditor'
 import GroupRulePanel from './components/GroupRulePanel'
 import OfferPreview from './components/OfferPreview'
+import useOffers from './hooks/useOffers'
 
-type Props = { initial?: OfferFormInput; onSaved?: (o: OfferFormInput) => void; headerTitle?: string }
+type Props = { initial?: OfferWithId; onSaved?: (o: OfferWithId) => void; headerTitle?: string }
 
 export default function OfferFormV2({ initial, onSaved, headerTitle }: Props) {
-    const [dirty, setDirty] = useState(false)
-    const { control, register, handleSubmit, formState: { errors, isDirty, isSubmitting }, reset, watch, setValue } = useForm<OfferFormInput>({
+    const navigate = useNavigate()
+    const [validationErrors, setValidationErrors] = useState<string[]>([])
+    const [isDirtySinceMount, setIsDirtySinceMount] = useState(false)
+
+    // Redux hooks
+    const { createOffer, updateOffer, isCreating, isUpdating, offersError } = useOffers()
+
+    const {
+        control,
+        register,
+        handleSubmit,
+        formState: { errors, isDirty, isSubmitting },
+        reset,
+        watch,
+        setValue,
+        clearErrors
+    } = useForm<OfferFormInput>({
         resolver: zodResolver(offerSchema),
         defaultValues: initial ?? defaultOfferValues,
         mode: 'onChange',
     })
-    useEffect(() => { const s = watch(() => setDirty(true)); return () => s.unsubscribe() }, [watch])
-    useEffect(() => { if (initial) reset(initial) }, [initial, reset])
-    const form = watch()
-    async function onSubmit(v: OfferFormInput) { await saveOffer(v); onSaved?.(v); setDirty(false) }
 
-    const slug = (form.title || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+    useEffect(() => {
+        const subscription = watch(() => setIsDirtySinceMount(true))
+        return () => subscription.unsubscribe()
+    }, [watch])
+
+    useEffect(() => { if (initial) reset(initial) }, [initial, reset])
+    
+            const form = watch()
+
+    async function onSubmit(values: OfferFormInput, shouldPublish = false) {
+        try {
+            console.log('🚀 Form submission started')
+            console.log('📝 Form values:', values)
+            console.log('📤 Should publish:', shouldPublish)
+            
+            // Clear previous validation errors
+            setValidationErrors([])
+            clearErrors()
+
+            // Validate form data
+            console.log('✅ Running form validation...')
+            const formValidation = validateFormForSubmission(values)
+            if (!formValidation.isValid) {
+                console.log('❌ Form validation failed:', formValidation.errors)
+                setValidationErrors(formValidation.errors)
+                return
+            }
+            console.log('✅ Form validation passed')
+
+            // Transform form data to API format
+            const apiData = formToApiData(values)
+            console.log('🔄 Transformed API data:', apiData)
+
+            // Save offer
+            let savedOffer: OfferWithId
+            if (initial?.id) {
+                console.log('🔄 Updating existing offer with ID:', initial.id)
+                savedOffer = await updateOffer(initial.id, apiData)
+            } else {
+                console.log('🔄 Creating new offer')
+                savedOffer = await createOffer(apiData)
+            }
+
+            console.log('✅ Offer saved successfully!')
+
+            // Success callback
+            onSaved?.(savedOffer)
+            setIsDirtySinceMount(false)
+
+            // Navigate back to list or stay for further editing
+            if (shouldPublish) {
+                console.log('🔄 Navigating to offer list')
+                navigate('/app/offers-v2/offer-list')
+            }
+        } catch (error) {
+            console.error('❌ Save failed:', error)
+            setValidationErrors([error instanceof Error ? error.message : 'Failed to save offer'])
+        }
+    }    const slug = (form.title || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
 
     return (
         <div className="space-y-4">
             <Card className="sticky top-0 z-10 rounded-md shadow-sm" bodyClass="py-3 px-4 md:px-6 lg:px-8 bg-white/80 dark:bg-gray-800/80 backdrop-blur">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <h3 className="text-lg font-semibold">{headerTitle ?? 'New Offer'}</h3>
-                        {dirty && (<Tag className="bg-amber-100 text-amber-800 border border-amber-200 px-2 py-0.5 rounded" suffix suffixClass="bg-red-500">Unsaved</Tag>)}
+                {/* Error Messages */}
+            {(validationErrors.length > 0 || offersError) && (
+                <Alert 
+                    showIcon 
+                    className="mb-4" 
+                    type="danger"
+                    onClose={() => {
+                        setValidationErrors([])
+                    }}
+                >
+                    <div>
+                        {offersError && <div className="mb-2">{offersError}</div>}
+                        {validationErrors.map((err, idx) => (
+                            <div key={idx} className="mb-1">• {err}</div>
+                        ))}
                     </div>
-                    <div className="flex items-center gap-2">
-                        <Button type="button" onClick={() => reset()} disabled={!isDirty}>Cancel</Button>
-                        <Button type="button" onClick={handleSubmit(onSubmit)} disabled={!isDirty || isSubmitting}>Save Draft</Button>
-                        <Button type="button" variant="solid" onClick={handleSubmit(onSubmit)} disabled={isSubmitting}>Save & Activate</Button>
-                    </div>
+                </Alert>
+            )}
+            
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <h3 className="text-lg font-semibold">{headerTitle ?? 'New Offer'}</h3>
+                    {isDirtySinceMount && (
+                        <Tag className="bg-amber-100 text-amber-800 border border-amber-200 px-2 py-0.5 rounded" suffix suffixClass="bg-red-500">
+                            Unsaved
+                        </Tag>
+                    )}
+                    {(isCreating || isUpdating) && (
+                        <Tag className="bg-blue-100 text-blue-800 border border-blue-200 px-2 py-0.5 rounded">
+                            Saving...
+                        </Tag>
+                    )}
                 </div>
+                <div className="flex items-center gap-2">
+                    <Button 
+                        type="button" 
+                        onClick={() => {
+                            reset()
+                            setValidationErrors([])
+                        }} 
+                        disabled={!isDirty || isCreating || isUpdating}
+                    >
+                        Cancel
+                    </Button>
+                    <Button 
+                        type="button" 
+                        onClick={handleSubmit(
+                            (v) => {
+                                console.log('🔘 Save Draft button clicked - handleSubmit success')
+                                console.log('📊 Form state - isDirty:', isDirty, 'isLoading:', isCreating || isUpdating)
+                                return onSubmit(v, false)
+                            },
+                            (errors) => {
+                                console.log('❌ Save Draft - handleSubmit validation failed:', errors)
+                            }
+                        )} 
+                        disabled={!isDirty || isCreating || isUpdating}
+                        loading={isCreating || isUpdating}
+                    >
+                        Save Draft
+                    </Button>
+                    <Button 
+                        type="button" 
+                        variant="solid" 
+                        onClick={handleSubmit(
+                            (v) => {
+                                console.log('🔘 Save & Activate button clicked - handleSubmit success')
+                                console.log('📊 Form state - isDirty:', isDirty, 'isLoading:', isCreating || isUpdating)
+                                return onSubmit(v, true)
+                            },
+                            (errors) => {
+                                console.log('❌ Save & Activate - handleSubmit validation failed:', errors)
+                            }
+                        )} 
+                        disabled={isCreating || isUpdating}
+                        loading={isCreating || isUpdating}
+                    >
+                        Save & Activate
+                    </Button>
+                </div>
+            </div>
             </Card>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

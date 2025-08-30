@@ -23,6 +23,32 @@ export default function VariantsGrid({ value, onChange }: Props) {
         () => [
             { header: 'SKU', accessorKey: 'sku' },
             {
+                header: 'Size',
+                cell: (p) => p.row.original.size || '—',
+            },
+            {
+                header: 'Color',
+                cell: (p) => {
+                    const v = p.row.original
+                    if (v.color && v.colorCode) {
+                        return (
+                            <div className="flex items-center gap-2">
+                                <div 
+                                    className="w-4 h-4 rounded border border-gray-300" 
+                                    style={{ backgroundColor: v.colorCode }}
+                                ></div>
+                                <span>{v.color}</span>
+                            </div>
+                        )
+                    }
+                    return v.color || '—'
+                },
+            },
+            {
+                header: 'Material',
+                cell: (p) => p.row.original.material || '—',
+            },
+            {
                 header: 'Price',
                 accessorKey: 'price',
                 cell: (p) => formatCurrency(p.row.original.price),
@@ -76,25 +102,36 @@ export default function VariantsGrid({ value, onChange }: Props) {
     const onSort = (_: OnSortParam) => {}
 
     function onAdd() {
+        console.log('➕ Add Variant clicked')
         setEditingIndex(null)
         setDrawerOpen(true)
     }
 
     function onEdit(index: number) {
+        console.log('✏️ Edit Variant clicked for index:', index)
         setEditingIndex(index)
         setDrawerOpen(true)
     }
 
     function onDelete(index: number) {
+        console.log('🗑️ Delete Variant clicked for index:', index)
         const next = value.slice()
         next.splice(index, 1)
         onChange(next)
     }
 
     function handleSubmit(variant: VariantFormInput) {
+        console.log('✅ Variant submitted:', variant)
+        console.log('📝 Current variants before update:', value)
         const next = value.slice()
-        if (editingIndex === null) next.unshift(variant)
-        else next[editingIndex] = variant
+        if (editingIndex === null) {
+            console.log('➕ Adding new variant')
+            next.unshift(variant)
+        } else {
+            console.log('✏️ Updating variant at index:', editingIndex)
+            next[editingIndex] = variant
+        }
+        console.log('📝 Updated variants:', next)
         onChange(next)
         setDrawerOpen(false)
     }

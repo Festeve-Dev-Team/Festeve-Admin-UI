@@ -14,7 +14,7 @@ const Step1 = ({ onNext, onSkip }: Step1Props) => {
                 alt="Welcome"
             />
             <h3 className="mb-2">
-                Welcome on Board, lets get started with Elstar
+                Welcome on Board, lets get started with Festeve
             </h3>
             <p className="text-base">
                 Telling us a bit about yourself to get the best experience, this

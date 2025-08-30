@@ -11,7 +11,7 @@ const SignUpCover = () => {
                 </>
             }
         >
-            <SignUpForm disableSubmit={true} signInUrl="/auth/sign-in-cover" />
+            <SignUpForm disableSubmit={false} signInUrl="/auth/sign-in-cover" />
         </Cover>
     )
 }

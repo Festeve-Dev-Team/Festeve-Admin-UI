@@ -4,7 +4,7 @@ const Internationalization = () => {
     return (
         <>
             <p>
-                Elstar use{' '}
+                Festeve use{' '}
                 <a
                     href="https://react.i18next.com/"
                     target="_blank"

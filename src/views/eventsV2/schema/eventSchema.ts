@@ -19,6 +19,7 @@ export const recurringSchema = z.object({
 
 export const eventSchema = z
     .object({
+        id: z.string().optional(),
         name: z.string().min(3).max(120),
         description: z.string().max(1000).optional().default(''),
         type: z.string().min(1),
@@ -30,14 +31,17 @@ export const eventSchema = z
         region: z.string().optional().default(''),
         regions: z.array(z.string()).default([]),
         specialOffers: z.array(specialOfferSchema).default([]),
+        productIds: z.array(z.string().min(1)).max(10000).default([]), // General product associations
         extraData: z.record(z.unknown()).default({}),
     })
     .superRefine((data, ctx) => {
-        // Date warning if past vs IST
+        // Date warning if past vs IST - but don't fail validation
         const date = new Date(data.date)
-        const isPast = toIST(date) < new Date(istNow().toDateString())
+        const now = new Date()
+        const isPast = date < now
         if (isPast) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['date'], message: 'Date appears to be in the past (IST)', fatal: false })
+            // Log warning but don't add validation issue that blocks form submission
+            console.warn('⚠️ Date appears to be in the past:', data.date)
         }
 
         // Recurring constraints
@@ -55,6 +59,9 @@ export const eventSchema = z
         // linkedProducts dedupe by productId+relation
         data.linkedProducts = dedupeBy(data.linkedProducts, (p) => `${p.productId}|${p.relation}`)
 
+        // productIds dedupe
+        data.productIds = Array.from(new Set(data.productIds.filter(Boolean)))
+
         // regions dedupe case-insensitively
         data.regions = Array.from(new Map(data.regions.map((r) => [r.toLowerCase(), r])).values())
     })
@@ -65,15 +72,19 @@ export const defaultEventValues: EventFormInput = {
     name: 'Diwali Festival',
     description: 'Festival of lights celebration',
     type: 'daily',
-    date: new Date('2025-08-10T13:15:12.929Z').toISOString(),
+    date: new Date('2025-08-11T18:06:49.152Z').toISOString(),
     recurring: { isRecurring: false, frequency: 'daily', daysOfWeek: [0] },
-    linkedProducts: [{ productId: 'prod_1', relation: 'poojaKit' }],
+    linkedProducts: [{ productId: '64b7f1c2a9d4e5f6b7c8d9e0', relation: 'poojaKit' }],
     purohitRequired: false,
-    ritualNotes: '',
-    region: 'All-India',
-    regions: ['Maharashtra', 'Delhi'],
-    specialOffers: [{ offerType: 'exclusive_offer', productId: 'prod_1' }],
-    extraData: {},
+    ritualNotes: 'Light diyas at sunset; family puja at 7 PM',
+    region: 'IN',
+    regions: ['IN-MH', 'IN-TG'],
+    specialOffers: [{ offerType: 'exclusive_offer', productId: '64b7f1c2a9d4e5f6b7c8d9e1' }],
+    productIds: [], // General product associations
+    extraData: {
+        theme: 'Lakshmi Puja',
+        dressCode: 'Traditional'
+    },
 }
 
 

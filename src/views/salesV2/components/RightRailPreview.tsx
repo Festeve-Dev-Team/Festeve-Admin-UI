@@ -1,5 +1,6 @@
 import Card from '@/components/ui/Card'
 import Tag from '@/components/ui/Tag'
+import Badge from '@/components/ui/Badge'
 import { formatCurrency, calcEffectivePrice } from '../utils/pricing'
 import type { ProductFormInput } from '../schema/productSchema'
 

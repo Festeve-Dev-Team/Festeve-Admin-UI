@@ -1,51 +1,213 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { eventSchema, defaultEventValues, type EventFormInput } from './schema/eventSchema'
-import { saveEvent } from './services/eventApi'
+import { formToApiData, validateFormForSubmission } from './utils'
+import useEvents from './hooks/useEvents'
+import useProducts from '@/utils/hooks/useProducts'
+import { useNavigate } from 'react-router-dom'
 
+import Card from '@/components/ui/Card'
+import Tabs from '@/components/ui/Tabs'
+import Tag from '@/components/ui/Tag'
+import Button from '@/components/ui/Button'
+import Alert from '@/components/ui/Alert'
+import Switcher from '@/components/ui/Switcher'
 import { FormContainer, FormItem } from '@/components/ui/Form'
 import Input from '@/components/ui/Input'
-import Button from '@/components/ui/Button'
-import Tabs from '@/components/ui/Tabs'
-import Card from '@/components/ui/Card'
-import Tag from '@/components/ui/Tag'
 import DateTimepicker from '@/components/ui/DatePicker/DateTimepicker'
 
 import RecurrenceEditor from './components/RecurrenceEditor'
 import LinkedProductsEditor from './components/LinkedProductsEditor'
 import OffersEditor from './components/OffersEditor'
+import ProductIdsEditor from './components/ProductIdsEditor'
 import ChipsInput from './components/ChipsInput'
 import EventPreview from './components/EventPreview'
 
 type Props = { initial?: EventFormInput; onSaved?: (e: EventFormInput) => void; headerTitle?: string }
 
 export default function EventFormV2({ initial, onSaved, headerTitle }: Props) {
-    const [isDirtySinceMount, setDirty] = useState(false)
-    const { control, register, handleSubmit, formState: { errors, isDirty, isSubmitting }, reset, watch, setValue } = useForm<EventFormInput>({
+    const navigate = useNavigate()
+    const [isDirtySinceMount, setIsDirtySinceMount] = useState(false)
+    const [validationErrors, setValidationErrors] = useState<string[]>([])
+    
+    // Redux hooks
+    const { createEvent, updateEvent, isCreating, isUpdating, error } = useEvents()
+    const { 
+        products, 
+        loadProducts, 
+        isProductsLoading,
+        clearAllProductErrors 
+    } = useProducts()
+    
+    const {
+        control,
+        register,
+        handleSubmit,
+        formState: { errors, isDirty, isSubmitting },
+        reset,
+        watch,
+        setValue,
+        setError,
+        clearErrors
+    } = useForm<EventFormInput>({
         resolver: zodResolver(eventSchema),
         defaultValues: initial ?? defaultEventValues,
         mode: 'onChange',
     })
-    useEffect(() => { const s = watch(() => setDirty(true)); return () => s.unsubscribe() }, [watch])
-    useEffect(() => { if (initial) reset(initial) }, [initial, reset])
+
+    useEffect(() => {
+        const subscription = watch(() => setIsDirtySinceMount(true))
+        return () => subscription.unsubscribe()
+    }, [watch])
+
+    useEffect(() => {
+        if (initial) reset(initial)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [initial])
+
+    // Load products on mount (same as VendorFormV2)
+    useEffect(() => {
+        console.log('EventFormV2: Loading products on mount')
+        loadProducts({ page: 1, limit: 20 })
+    }, [loadProducts])
+
     const form = watch()
-    async function onSubmit(v: EventFormInput) { await saveEvent(v); onSaved?.(v); setDirty(false) }
+    const isLoading = isCreating || isUpdating
+
+    async function onSubmit(values: EventFormInput, shouldPublish = false) {
+        try {
+            console.log('🚀 Form submission started')
+            console.log('📝 Form values:', values)
+            console.log('📤 Should publish:', shouldPublish)
+            
+            // Clear previous validation errors
+            setValidationErrors([])
+            clearErrors()
+
+            // Validate form data
+            console.log('✅ Running form validation...')
+            const formValidation = validateFormForSubmission(values)
+            if (!formValidation.isValid) {
+                console.log('❌ Form validation failed:', formValidation.errors)
+                setValidationErrors(formValidation.errors)
+                return
+            }
+            console.log('✅ Form validation passed')
+
+            // Transform form data to API format
+            const apiData = formToApiData(values)
+            console.log('🔄 Transformed API data:', apiData)
+
+            // Save event
+            if (values.id) {
+                console.log('🔄 Updating existing event with ID:', values.id)
+                await updateEvent(values.id, apiData)
+            } else {
+                console.log('🔄 Creating new event')
+                await createEvent(apiData)
+            }
+
+            console.log('✅ Event saved successfully!')
+
+            // Success callback
+            onSaved?.(values)
+            setIsDirtySinceMount(false)
+
+            // Navigate back to list or stay for further editing
+            if (shouldPublish) {
+                console.log('🔄 Navigating to event list')
+                navigate('/app/events-v2/event-list')
+            }
+        } catch (error) {
+            console.error('❌ Save failed:', error)
+            setValidationErrors([error instanceof Error ? error.message : 'Failed to save event'])
+        }
+    }
 
     return (
         <div className="space-y-4">
-            <Card className="sticky top-0 z-10 rounded-md shadow-sm" bodyClass="py-3 px-4 md:px-6 lg:px-8 bg-white/80 dark:bg-gray-800/80 backdrop-blur">
+            {/* Error Messages */}
+            {(validationErrors.length > 0 || error) && (
+                <Alert 
+                    showIcon 
+                    className="mb-4" 
+                    type="danger"
+                    onClose={() => {
+                        setValidationErrors([])
+                    }}
+                >
+                    <div>
+                        {error && <div className="mb-2">{error}</div>}
+                        {validationErrors.map((err, idx) => (
+                            <div key={idx} className="mb-1">• {err}</div>
+                        ))}
+                    </div>
+                </Alert>
+            )}
+
+            {/* Sticky Header */}
+            <Card className="sticky top-0 z-10" bodyClass="py-3 px-4 md:px-6 lg:px-8 bg-white/80 dark:bg-gray-800/80 backdrop-blur">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <h3 className="text-lg font-semibold">{headerTitle ?? 'New Event'}</h3>
                         {isDirtySinceMount && (
-                            <Tag className="bg-amber-100 text-amber-800 border border-amber-200 px-2 py-0.5 rounded" suffix suffixClass="bg-red-500">Unsaved</Tag>
+                            <Tag className="bg-amber-100 text-amber-800 border border-amber-200 px-2 py-0.5 rounded" suffix suffixClass="bg-red-500" aria-label="Unsaved changes">
+                                Unsaved
+                            </Tag>
+                        )}
+                        {isLoading && (
+                            <Tag className="bg-blue-100 text-blue-800 border border-blue-200 px-2 py-0.5 rounded">
+                                Saving...
+                            </Tag>
                         )}
                     </div>
                     <div className="flex items-center gap-2">
-                        <Button type="button" onClick={() => reset()} disabled={!isDirty}>Cancel</Button>
-                        <Button type="button" onClick={handleSubmit(onSubmit)} disabled={!isDirty || isSubmitting}>Save</Button>
-                        <Button type="button" variant="solid" onClick={handleSubmit(onSubmit)} disabled={isSubmitting}>Save & Publish</Button>
+                        <Button 
+                            type="button" 
+                            onClick={() => {
+                                reset()
+                                setValidationErrors([])
+                            }} 
+                            disabled={!isDirty || isLoading}
+                        >
+                            Cancel
+                        </Button>
+                        <Button 
+                            type="button" 
+                            onClick={handleSubmit(
+                                (v) => {
+                                    console.log('🔘 Save Draft button clicked - handleSubmit success')
+                                    console.log('📊 Form state - isDirty:', isDirty, 'isLoading:', isLoading)
+                                    return onSubmit(v, false)
+                                },
+                                (errors) => {
+                                    console.log('❌ Save Draft - handleSubmit validation failed:', errors)
+                                }
+                            )} 
+                            disabled={!isDirty || isLoading}
+                            loading={isLoading}
+                        >
+                            Save Draft
+                        </Button>
+                        <Button 
+                            type="button" 
+                            variant="solid" 
+                            onClick={handleSubmit(
+                                (v) => {
+                                    console.log('🔘 Save & Publish button clicked - handleSubmit success')
+                                    console.log('📊 Form state - isDirty:', isDirty, 'isLoading:', isLoading)
+                                    return onSubmit(v, true)
+                                },
+                                (errors) => {
+                                    console.log('❌ Save & Publish - handleSubmit validation failed:', errors)
+                                }
+                            )} 
+                            disabled={isLoading}
+                            loading={isLoading}
+                        >
+                            Save & Publish
+                        </Button>
                     </div>
                 </div>
             </Card>
@@ -57,10 +219,11 @@ export default function EventFormV2({ initial, onSaved, headerTitle }: Props) {
                             <Tabs.TabList>
                                 <Tabs.TabNav value="basics">Basics</Tabs.TabNav>
                                 <Tabs.TabNav value="schedule">Schedule</Tabs.TabNav>
-                                <Tabs.TabNav value="links">Links</Tabs.TabNav>
+                                {/* <Tabs.TabNav value="links">Links</Tabs.TabNav> */}
+                                <Tabs.TabNav value="products">Products</Tabs.TabNav>
                                 <Tabs.TabNav value="regions">Regions</Tabs.TabNav>
                                 <Tabs.TabNav value="purohit">Purohit & Rituals</Tabs.TabNav>
-                                <Tabs.TabNav value="extra">Extra Data</Tabs.TabNav>
+                                {/* <Tabs.TabNav value="extra">Extra Data</Tabs.TabNav> */}
                             </Tabs.TabList>
 
                             <Tabs.TabContent value="basics" className="px-4 pt-3 pb-4">
@@ -88,10 +251,16 @@ export default function EventFormV2({ initial, onSaved, headerTitle }: Props) {
                                 </div>
                             </Tabs.TabContent>
 
-                            <Tabs.TabContent value="links" className="px-4 pt-3 pb-4">
+                            {/* <Tabs.TabContent value="links" className="px-4 pt-3 pb-4">
                                 <div className="mx-auto w-full max-w-5xl space-y-6">
                                     <LinkedProductsEditor value={form.linkedProducts} onChange={(v) => setValue('linkedProducts', v, { shouldDirty: true })} />
                                     <OffersEditor value={form.specialOffers} onChange={(v) => setValue('specialOffers', v, { shouldDirty: true })} />
+                                </div>
+                            </Tabs.TabContent> */}
+
+                            <Tabs.TabContent value="products" className="px-4 pt-3 pb-4">
+                                <div className="mx-auto w-full max-w-5xl space-y-6">
+                                    <ProductIdsEditor value={form.productIds} onChange={(v) => setValue('productIds', v, { shouldDirty: true })} />
                                 </div>
                             </Tabs.TabContent>
 
@@ -109,24 +278,29 @@ export default function EventFormV2({ initial, onSaved, headerTitle }: Props) {
                                 <div className="mx-auto w-full max-w-5xl space-y-6">
                                     <FormContainer>
                                         <FormItem label="Purohit required?">
-                                            <Controller name="purohitRequired" control={control} render={({ field }) => <Input asElement="input" type="checkbox" className="mr-2" checked={!!field.value} onChange={(e) => field.onChange(e.target.checked)} />} />
+                                            <Controller name="purohitRequired" control={control} render={({ field }) => (
+                                                <Switcher 
+                                                    checked={!!field.value} 
+                                                    onChange={(checked) => field.onChange(checked)} 
+                                                />
+                                            )} />
                                         </FormItem>
                                         <FormItem label="Ritual notes"><Input asElement="textarea" rows={4} {...register('ritualNotes')} /></FormItem>
                                     </FormContainer>
                                 </div>
                             </Tabs.TabContent>
 
-                            <Tabs.TabContent value="extra" className="px-4 pt-3 pb-4">
+                            {/* <Tabs.TabContent value="extra" className="px-4 pt-3 pb-4">
                                 <div className="mx-auto w-full max-w-5xl space-y-6">
                                     <FormContainer>
                                         <FormItem label="Extra Data (JSON)">
                                             <Input asElement="textarea" rows={8} value={JSON.stringify(form.extraData || {}, null, 2)} onChange={(e) => {
-                                                try { setValue('extraData', JSON.parse(e.target.value), { shouldDirty: true }) } catch { /* ignore */ }
+                                                try { setValue('extraData', JSON.parse(e.target.value), { shouldDirty: true }) } catch {  }
                                             }} />
                                         </FormItem>
                                     </FormContainer>
                                 </div>
-                            </Tabs.TabContent>
+                            </Tabs.TabContent> */}
                         </Tabs>
                     </Card>
                 </div>

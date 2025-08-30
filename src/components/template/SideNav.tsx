@@ -91,9 +91,9 @@ const SideNav = () => {
                             mode={logoMode()}
                             type={sideNavCollapse ? 'streamline' : 'full'}
                             className={
-                                sideNavCollapse
+                                `${sideNavCollapse
                                     ? SIDE_NAV_CONTENT_GUTTER
-                                    : LOGO_X_GUTTER
+                                    : LOGO_X_GUTTER} p-4`
                             }
                         />
                     </div>

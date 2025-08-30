@@ -1,14 +1,17 @@
+import { useState } from 'react'
 import { FormItem, FormContainer } from '@/components/ui/Form'
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
 import Alert from '@/components/ui/Alert'
 import PasswordInput from '@/components/shared/PasswordInput'
 import ActionLink from '@/components/shared/ActionLink'
+import OTPVerification from '@/components/shared/OTPVerification'
 import useTimeOutMessage from '@/utils/hooks/useTimeOutMessage'
 import { Field, Form, Formik } from 'formik'
 import * as Yup from 'yup'
 import useAuth from '@/utils/hooks/useAuth'
 import type { CommonProps } from '@/@types/common'
+import type { SignUpCredential } from '@/@types/auth'
 
 interface SignUpFormProps extends CommonProps {
     disableSubmit?: boolean
@@ -16,43 +19,116 @@ interface SignUpFormProps extends CommonProps {
 }
 
 type SignUpFormSchema = {
-    userName: string
+    name: string
     password: string
     email: string
+    phone: string
+    referralCode: string
+    confirmPassword: string
 }
 
 const validationSchema = Yup.object().shape({
-    userName: Yup.string().required('Please enter your user name'),
+    name: Yup.string().required('Please enter your name'),
     email: Yup.string()
         .email('Invalid email')
         .required('Please enter your email'),
-    password: Yup.string().required('Please enter your password'),
+    phone: Yup.string().required('Please enter your phone number'),
+    password: Yup.string()
+        .min(6, 'Password must be at least 6 characters')
+        .required('Please enter your password'),
     confirmPassword: Yup.string().oneOf(
         [Yup.ref('password')],
         'Your passwords do not match',
     ),
+    referralCode: Yup.string(), // Optional field
 })
 
 const SignUpForm = (props: SignUpFormProps) => {
     const { disableSubmit = false, className, signInUrl = '/sign-in' } = props
 
-    const { signUp } = useAuth()
+    const { signUp, verifyOTP } = useAuth()
 
     const [message, setMessage] = useTimeOutMessage()
+    const [showOTPVerification, setShowOTPVerification] = useState(false)
+    const [signupData, setSignupData] = useState<SignUpCredential | null>(null)
+    const [identifier, setIdentifier] = useState('')
 
     const onSignUp = async (
         values: SignUpFormSchema,
         setSubmitting: (isSubmitting: boolean) => void,
     ) => {
-        const { userName, password, email } = values
+        const { name, password, email, phone, referralCode } = values
         setSubmitting(true)
-        const result = await signUp({ userName, password, email })
+        
+        const signUpData = {
+            name,
+            email,
+            phone,
+            provider: 'native',
+            providerUserId: '',
+            password,
+            profilePicture: '',
+            referralCode: referralCode || '',
+        }
+        
+        const result = await signUp(signUpData)
 
         if (result?.status === 'failed') {
-            setMessage(result.message)
+            // Check if the error message indicates OTP is required
+            if (result.message?.toLowerCase().includes('otp') || 
+                result.message?.toLowerCase().includes('verification') ||
+                result.message?.toLowerCase().includes('verify')) {
+                // Switch to OTP verification mode
+                setSignupData(signUpData)
+                setIdentifier(email)
+                setShowOTPVerification(true)
+                setMessage('')
+            } else {
+                setMessage(result.message)
+            }
+        } else if (result?.status === 'success') {
+            // For successful signup, always show OTP verification
+            // This assumes your API requires OTP verification after signup
+            setSignupData(signUpData)
+            setIdentifier(email)
+            setShowOTPVerification(true)
+            setMessage('')
+        } else {
+            // Fallback: if no result, assume OTP is needed
+            setSignupData(signUpData)
+            setIdentifier(email)
+            setShowOTPVerification(true)
+            setMessage('')
         }
 
         setSubmitting(false)
+    }
+
+    const handleOTPVerification = async (
+        identifier: string,
+        code: string,
+        signupData: SignUpCredential
+    ) => {
+        return await verifyOTP(identifier, code, signupData)
+    }
+
+    const handleOTPSuccess = () => {
+        // This will be called when OTP verification is successful
+        // The verifyOTP function already handles navigation
+        setShowOTPVerification(false)
+    }
+
+    // Show OTP verification if required
+    if (showOTPVerification && signupData) {
+        return (
+            <OTPVerification
+                className={className}
+                identifier={identifier}
+                signupData={signupData}
+                onVerifyOTP={handleOTPVerification}
+                onVerifySuccess={handleOTPSuccess}
+            />
+        )
     }
 
     return (
@@ -64,10 +140,12 @@ const SignUpForm = (props: SignUpFormProps) => {
             )}
             <Formik
                 initialValues={{
-                    userName: 'admin1',
-                    password: '123Qwe1',
-                    confirmPassword: '123Qwe1',
-                    email: 'test@testmail.com',
+                    name: '',
+                    password: '',
+                    confirmPassword: '',
+                    email: '',
+                    phone: '',
+                    referralCode: '',
                 }}
                 validationSchema={validationSchema}
                 onSubmit={(values, { setSubmitting }) => {
@@ -82,15 +160,15 @@ const SignUpForm = (props: SignUpFormProps) => {
                     <Form>
                         <FormContainer>
                             <FormItem
-                                label="User Name"
-                                invalid={errors.userName && touched.userName}
-                                errorMessage={errors.userName}
+                                label="Full Name"
+                                invalid={errors.name && touched.name}
+                                errorMessage={errors.name}
                             >
                                 <Field
                                     type="text"
                                     autoComplete="off"
-                                    name="userName"
-                                    placeholder="User Name"
+                                    name="name"
+                                    placeholder="Full Name"
                                     component={Input}
                                 />
                             </FormItem>
@@ -104,6 +182,19 @@ const SignUpForm = (props: SignUpFormProps) => {
                                     autoComplete="off"
                                     name="email"
                                     placeholder="Email"
+                                    component={Input}
+                                />
+                            </FormItem>
+                            <FormItem
+                                label="Phone Number"
+                                invalid={errors.phone && touched.phone}
+                                errorMessage={errors.phone}
+                            >
+                                <Field
+                                    type="tel"
+                                    autoComplete="off"
+                                    name="phone"
+                                    placeholder="Phone Number"
                                     component={Input}
                                 />
                             </FormItem>
@@ -132,6 +223,19 @@ const SignUpForm = (props: SignUpFormProps) => {
                                     name="confirmPassword"
                                     placeholder="Confirm Password"
                                     component={PasswordInput}
+                                />
+                            </FormItem>
+                            <FormItem
+                                label="Referral Code (Optional)"
+                                invalid={errors.referralCode && touched.referralCode}
+                                errorMessage={errors.referralCode}
+                            >
+                                <Field
+                                    type="text"
+                                    autoComplete="off"
+                                    name="referralCode"
+                                    placeholder="Referral Code"
+                                    component={Input}
                                 />
                             </FormItem>
                             <Button

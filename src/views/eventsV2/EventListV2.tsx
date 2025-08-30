@@ -4,7 +4,7 @@ import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import { HiOutlineSearch } from 'react-icons/hi'
 import DataTable, { type ColumnDef, type DataTableResetHandle } from '@/components/shared/DataTable'
-import { listEvents } from './services/eventApi'
+import { getEvents } from './services/eventApi'
 import type { EventWithId } from './types/event'
 import { useNavigate } from 'react-router-dom'
 
@@ -15,7 +15,16 @@ export default function EventListV2() {
     const navigate = useNavigate()
     const tableRef = useRef<DataTableResetHandle>(null)
 
-    useEffect(() => { setLoading(true); listEvents().then((data) => { setRows(data); setLoading(false) }) }, [])
+    useEffect(() => { 
+        setLoading(true)
+        getEvents().then((response) => { 
+            setRows(response.events)
+            setLoading(false) 
+        }).catch((error) => {
+            console.error('Failed to load events:', error)
+            setLoading(false)
+        })
+    }, [])
 
     const filtered = useMemo(() => {
         const q = query.trim().toLowerCase()

@@ -68,7 +68,7 @@ const InvoiceContent = () => {
                             <Logo className="mb-3" mode={mode} />
                             <address className="not-italic">
                                 <div>
-                                    <h5>Elstar, Inc.</h5>
+                                    <h5>Festeve, Inc.</h5>
                                     <br />
                                     <span>9498 Harvard Street</span>
                                     <br />

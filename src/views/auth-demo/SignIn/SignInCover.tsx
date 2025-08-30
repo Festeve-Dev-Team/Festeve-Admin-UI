@@ -12,7 +12,7 @@ const SignInCover = () => {
             }
         >
             <SignInForm
-                disableSubmit={true}
+                disableSubmit={false}
                 signUpUrl="/auth/sign-up-cover"
                 forgotPasswordUrl="/auth/forgot-password-cover"
             />

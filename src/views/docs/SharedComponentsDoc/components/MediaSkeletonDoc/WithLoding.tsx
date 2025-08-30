@@ -41,7 +41,7 @@ const WithLoding = () => {
                     />
                     <div>
                         <h6>Carolyn Perkins</h6>
-                        <p>carolyn.p@elstar.com</p>
+                        <p>carolyn.p@Festeve.com</p>
                     </div>
                 </div>
             </Loading>

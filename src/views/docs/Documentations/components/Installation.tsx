@@ -5,7 +5,7 @@ const Installation = () => {
         <>
             <h6>Prerequisites</h6>
             <p>
-                Before you begin with Elstar, you may need to install the
+                Before you begin with Festeve, you may need to install the
                 following tools make sure your development environment able to
                 run the template.
             </p>
@@ -42,7 +42,7 @@ const Installation = () => {
                 </ul>
             </div>
             <div className="mt-8">
-                <h6>Installing Elstar</h6>
+                <h6>Installing Festeve</h6>
                 <p>
                     Once have you uncompressed the .zip file you have
                     downloaded, you will find 4 folder as below:

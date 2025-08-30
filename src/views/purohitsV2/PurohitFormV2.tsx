@@ -2,16 +2,19 @@ import { useEffect, useMemo, useState } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { purohitSchema, defaultPurohitValues, type PurohitFormInput } from './schema/purohitSchema'
-import { savePurohit } from './services/purohitApi'
+import { formToApiData, validateFormForSubmission } from './utils'
+import usePurohits from './hooks/usePurohits'
+import { useNavigate } from 'react-router-dom'
 
+import Card from '@/components/ui/Card'
+import Tabs from '@/components/ui/Tabs'
+import Tag from '@/components/ui/Tag'
+import Button from '@/components/ui/Button'
+import Alert from '@/components/ui/Alert'
+import Switcher from '@/components/ui/Switcher'
 import { FormContainer, FormItem } from '@/components/ui/Form'
 import Input from '@/components/ui/Input'
-import Button from '@/components/ui/Button'
-import Switcher from '@/components/ui/Switcher'
-import Tabs from '@/components/ui/Tabs'
-import Card from '@/components/ui/Card'
 import Tooltip from '@/components/ui/Tooltip'
-import Tag from '@/components/ui/Tag'
 import DateTimepicker from '@/components/ui/DatePicker/DateTimepicker'
 
 import ChipsInput from './components/ChipsInput'
@@ -26,16 +29,32 @@ type Props = {
 }
 
 export default function PurohitFormV2({ initial, onSaved, headerTitle }: Props) {
+    const navigate = useNavigate()
     const [isDirtySinceMount, setIsDirtySinceMount] = useState(false)
-    const { control, register, handleSubmit, formState: { errors, isDirty, isSubmitting }, reset, watch, setValue } = useForm<PurohitFormInput>({
+    const [validationErrors, setValidationErrors] = useState<string[]>([])
+    
+    // Redux hooks
+    const { createPurohit, updatePurohit, isCreating, isUpdating, error } = usePurohits()
+    
+    const {
+        control,
+        register,
+        handleSubmit,
+        formState: { errors, isDirty, isSubmitting },
+        reset,
+        watch,
+        setValue,
+        setError,
+        clearErrors
+    } = useForm<PurohitFormInput>({
         resolver: zodResolver(purohitSchema),
         defaultValues: initial ?? defaultPurohitValues,
         mode: 'onChange',
     })
 
     useEffect(() => {
-        const s = watch(() => setIsDirtySinceMount(true))
-        return () => s.unsubscribe()
+        const subscription = watch(() => setIsDirtySinceMount(true))
+        return () => subscription.unsubscribe()
     }, [watch])
 
     useEffect(() => {
@@ -44,27 +63,156 @@ export default function PurohitFormV2({ initial, onSaved, headerTitle }: Props) 
     }, [initial])
 
     const form = watch()
+    const isLoading = isCreating || isUpdating
 
-    async function onSubmit(values: PurohitFormInput) {
-        await savePurohit(values)
-        onSaved?.(values)
-        setIsDirtySinceMount(false)
+    async function onSubmit(values: PurohitFormInput, shouldPublish = false) {
+        try {
+            console.log('🚀 Form submission started')
+            console.log('📝 Form values:', values)
+            console.log('📤 Should publish:', shouldPublish)
+            
+            // Clear previous validation errors
+            setValidationErrors([])
+            clearErrors()
+
+            // Validate form data
+            console.log('✅ Running form validation...')
+            const formValidation = validateFormForSubmission(values)
+            if (!formValidation.isValid) {
+                console.log('❌ Form validation failed:', formValidation.errors)
+                setValidationErrors(formValidation.errors)
+                return
+            }
+            console.log('✅ Form validation passed')
+
+            // Transform form data to API format
+            const apiData = formToApiData(values)
+            console.log('🔄 Transformed API data:', apiData)
+
+            // Save purohit
+            if ((values as any).id) {
+                console.log('🔄 Updating existing purohit with ID:', (values as any).id)
+                await updatePurohit((values as any).id, apiData)
+            } else {
+                console.log('🔄 Creating new purohit')
+                await createPurohit(apiData)
+            }
+
+            console.log('✅ Purohit saved successfully!')
+
+            // Success callback
+            onSaved?.(values)
+            setIsDirtySinceMount(false)
+
+            // Navigate back to list or stay for further editing
+            if (shouldPublish) {
+                console.log('🔄 Navigating to purohit list')
+                navigate('/app/purohits-v2/purohit-list')
+            }
+        } catch (error) {
+            console.error('❌ Save failed:', error)
+            setValidationErrors([error instanceof Error ? error.message : 'Failed to save purohit'])
+        }
     }
 
     return (
         <div className="space-y-4">
-            <Card className="sticky top-0 z-10 rounded-md shadow-sm" bodyClass="py-3 px-4 md:px-6 lg:px-8 bg-white/80 dark:bg-gray-800/80 backdrop-blur">
+            {/* Error Messages */}
+            {(validationErrors.length > 0 || error) && (
+                <Alert 
+                    showIcon 
+                    className="mb-4" 
+                    type="danger"
+                    onClose={() => {
+                        setValidationErrors([])
+                    }}
+                >
+                    <div>
+                        {error && <div className="mb-2">{error}</div>}
+                        {validationErrors.map((err, idx) => (
+                            <div key={idx} className="mb-1">• {err}</div>
+                        ))}
+                    </div>
+                </Alert>
+            )}
+
+            {/* Sticky Header */}
+            <Card className="sticky top-0 z-10" bodyClass="py-3 px-4 md:px-6 lg:px-8 bg-white/80 dark:bg-gray-800/80 backdrop-blur">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <h3 className="text-lg font-semibold">{headerTitle ?? 'New Purohit'}</h3>
                         {isDirtySinceMount && (
-                            <Tag className="bg-amber-100 text-amber-800 border border-amber-200 px-2 py-0.5 rounded" suffix suffixClass="bg-red-500" aria-label="Unsaved changes">Unsaved</Tag>
+                            <Tag className="bg-amber-100 text-amber-800 border border-amber-200 px-2 py-0.5 rounded" suffix suffixClass="bg-red-500" aria-label="Unsaved changes">
+                                Unsaved
+                            </Tag>
+                        )}
+                        {isLoading && (
+                            <Tag className="bg-blue-100 text-blue-800 border border-blue-200 px-2 py-0.5 rounded">
+                                Saving...
+                            </Tag>
                         )}
                     </div>
                     <div className="flex items-center gap-2">
-                        <Button type="button" onClick={() => reset()} disabled={!isDirty}>Cancel</Button>
-                        <Button type="button" onClick={handleSubmit((v) => onSubmit(v))} disabled={!isDirty || isSubmitting}>Save</Button>
-                        <Button type="button" variant="solid" onClick={handleSubmit((v) => onSubmit(v))} disabled={isSubmitting}>Save & Publish</Button>
+                        <Button 
+                            type="button" 
+                            onClick={() => {
+                                console.log('🔍 DEBUG - Form State:')
+                                console.log('  - Form errors:', errors)
+                                console.log('  - Form isDirty:', isDirty)
+                                console.log('  - Form isValid:', Object.keys(errors).length === 0)
+                                console.log('  - Form values:', form)
+                                console.log('  - isLoading:', isLoading)
+                            }}
+                            variant="default"
+                            size="sm"
+                        >
+                            Debug
+                        </Button>
+                        <Button 
+                            type="button" 
+                            onClick={() => {
+                                reset()
+                                setValidationErrors([])
+                            }} 
+                            disabled={!isDirty || isLoading}
+                        >
+                            Cancel
+                        </Button>
+                        <Button 
+                            type="button" 
+                            onClick={handleSubmit(
+                                (v) => {
+                                    console.log('🔘 Save Draft button clicked - handleSubmit success')
+                                    console.log('📊 Form state - isDirty:', isDirty, 'isLoading:', isLoading)
+                                    return onSubmit(v, false)
+                                },
+                                (errors) => {
+                                    console.log('❌ Save Draft - handleSubmit validation failed:', errors)
+                                }
+                            )} 
+                            disabled={!isDirty || isLoading}
+                            loading={isLoading}
+                        >
+                            Save Draft
+                        </Button>
+                        <Button 
+                            type="button" 
+                            variant="solid" 
+                            onClick={handleSubmit(
+                                (v) => {
+                                    console.log('🔘 Save & Publish button clicked - handleSubmit success')
+                                    console.log('📊 Form state - isDirty:', isDirty, 'isLoading:', isLoading)
+                                    return onSubmit(v, true)
+                                },
+                                (errors) => {
+                                    console.log('❌ Save & Publish - handleSubmit validation failed:', errors)
+                                }
+                            )} 
+                            disabled={isLoading}
+                            loading={isLoading}
+                        >
+                            Save & Publish
+                        </Button>
                     </div>
                 </div>
             </Card>

@@ -24,9 +24,9 @@ export const purohitSchema = z
         skills: z.array(z.string()).max(50).default([]),
         availability: z.array(availabilitySchema).default([]),
         bio: z.string().max(500).default(''),
-        customSkills: z.record(z.union([z.string(), z.number()])).default({}),
+        customSkills: z.record(z.union([z.string(), z.number(), z.array(z.string())])).default({}),
         rituals: z.array(z.string()).max(50).default([]),
-        languages: z.array(z.string().min(2).max(5)).min(1, 'Select at least one language'),
+        languages: z.array(z.string().min(2).max(50)).min(1, 'Select at least one language'),
         chargesCommission: z.boolean().default(false),
         commissionType: commissionTypeEnum.default('percentage'),
         commissionValue: z.number().min(0).default(0),
@@ -43,31 +43,26 @@ export const purohitSchema = z
         data.skills = dedupe(data.skills)
         data.rituals = dedupe(data.rituals)
 
-        // Availability validations
-        const todayIST = new Date(istNow().toDateString())
+        // Availability validations - warnings only, don't block submission
         data.availability.forEach((a, idx) => {
             const d = new Date(a.date)
-            const dIST = toIST(d)
-            const midnightIST = new Date(dIST.getFullYear(), dIST.getMonth(), dIST.getDate())
-            if (midnightIST < todayIST) {
-                ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['availability', idx, 'date'], message: 'Date cannot be in the past' })
+            const now = new Date()
+            if (d < now) {
+                console.warn('⚠️ Availability date appears to be in the past:', a.date)
             }
-            // timeSlots format and range 5:00–22:00
-            const mins = a.timeSlots.map((t) => parseTimeSlot(t))
-            if (mins.some((m) => Number.isNaN(m))) {
-                ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['availability', idx, 'timeSlots'], message: 'Invalid time slot format' })
-            }
-            const inRange = mins.every((m) => m >= 5 * 60 && m <= 22 * 60)
-            if (!inRange) {
-                ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['availability', idx, 'timeSlots'], message: 'Slots must be within 5:00 AM – 10:00 PM' })
-            }
-            // No overlaps
-            const sorted = mins.slice().sort((a, b) => a - b)
-            for (let i = 1; i < sorted.length; i++) {
-                if (sorted[i] === sorted[i - 1]) {
-                    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['availability', idx, 'timeSlots'], message: 'Overlapping time slots' })
-                    break
+            
+            // Log warnings for time slot issues but don't block submission
+            try {
+                const mins = a.timeSlots.map((t) => parseTimeSlot(t))
+                if (mins.some((m) => Number.isNaN(m))) {
+                    console.warn('⚠️ Invalid time slot format:', a.timeSlots)
                 }
+                const inRange = mins.every((m) => m >= 5 * 60 && m <= 22 * 60)
+                if (!inRange) {
+                    console.warn('⚠️ Time slots outside 5:00 AM – 10:00 PM range:', a.timeSlots)
+                }
+            } catch (error) {
+                console.warn('⚠️ Error parsing time slots:', error)
             }
         })
 
@@ -95,12 +90,15 @@ export const defaultPurohitValues: PurohitFormInput = {
     experienceYears: 15,
     skills: ['Ganesha Puja', 'Wedding Ceremonies', 'Housewarming'],
     availability: [
-        { date: new Date('2025-08-10T13:15:12.940Z').toISOString(), timeSlots: ['9:00 AM', '11:00 AM', '2:00 PM'] },
+        { date: new Date('2025-08-12T01:55:49.012Z').toISOString(), timeSlots: ['9:00 AM', '11:00 AM', '2:00 PM'] },
     ],
     bio: 'Experienced in traditional Vedic rituals',
-    customSkills: {},
+    customSkills: {
+        specialization: 'South Indian style ceremonies',
+        languagesFluent: ['Sanskrit', 'Kannada']
+    },
     rituals: ['Ganesh Puja', 'Navagraha Homam', 'Satyanarayan Puja'],
-    languages: ['en', 'hi', 'te', 'mr'],
+    languages: ['English', 'Hindi', 'Telugu', 'Marathi'],
     chargesCommission: false,
     commissionType: 'percentage',
     commissionValue: 0,

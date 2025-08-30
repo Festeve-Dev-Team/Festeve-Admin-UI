@@ -33,6 +33,7 @@ const Logo = (props: LogoProps) => {
                 className={imgClass}
                 src={`${LOGO_SRC_PATH}logo-${mode}-${type}.png`}
                 alt={`${APP_NAME} logo`}
+                style={{ width: 120, height: '100%' }}
             />
         </div>
     )

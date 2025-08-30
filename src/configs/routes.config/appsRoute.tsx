@@ -116,6 +116,50 @@ const appsRoute: Routes = [
         authority: [ADMIN, USER],
         meta: { header: 'Edit Product (V2)' },
     },
+    // Vendors V2
+    {
+        key: 'appsVendorsV2.vendorList',
+        path: `${APP_PREFIX_PATH}/vendors-v2/vendor-list`,
+        component: lazy(() => import('@/views/vendorsV2/VendorListV2')),
+        authority: [ADMIN, USER],
+        meta: { header: 'Vendors V2' },
+    },
+    {
+        key: 'appsVendorsV2.vendorNew',
+        path: `${APP_PREFIX_PATH}/vendors-v2/vendor-new`,
+        component: lazy(() => import('@/views/vendorsV2/VendorCreateV2')),
+        authority: [ADMIN, USER],
+        meta: { header: 'Add New Vendor (V2)' },
+    },
+    {
+        key: 'appsVendorsV2.vendorEdit',
+        path: `${APP_PREFIX_PATH}/vendors-v2/vendor-edit/:id`,
+        component: lazy(() => import('@/views/vendorsV2/VendorEditV2')),
+        authority: [ADMIN, USER],
+        meta: { header: 'Edit Vendor (V2)' },
+    },
+    // Categories V2
+    {
+        key: 'appsCategoriesV2.categoryList',
+        path: `${APP_PREFIX_PATH}/categories-v2/category-list`,
+        component: lazy(() => import('@/views/categoriesV2/CategoryListV2')),
+        authority: [ADMIN, USER],
+        meta: { header: 'Categories V2' },
+    },
+    {
+        key: 'appsCategoriesV2.categoryNew',
+        path: `${APP_PREFIX_PATH}/categories-v2/category-new`,
+        component: lazy(() => import('@/views/categoriesV2/CategoryCreateV2')),
+        authority: [ADMIN, USER],
+        meta: { header: 'Add New Category (V2)' },
+    },
+    {
+        key: 'appsCategoriesV2.categoryEdit',
+        path: `${APP_PREFIX_PATH}/categories-v2/category-edit/:id`,
+        component: lazy(() => import('@/views/categoriesV2/CategoryEditV2')),
+        authority: [ADMIN, USER],
+        meta: { header: 'Edit Category (V2)' },
+    },
     // Purohits V2
     {
         key: 'appsPurohitsV2.list',

@@ -1,6 +1,7 @@
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import { FormContainer, FormItem } from '@/components/ui/Form'
+import ProductSelector from './ProductSelector'
 
 type Row = { offerType: string; productId: string }
 
@@ -45,8 +46,12 @@ export default function OffersEditor({ value, onChange }: Props) {
                                 ))}
                             </select>
                         </FormItem>
-                        <FormItem label="Product ID">
-                            <Input value={row.productId} onChange={(e) => updateRow(i, 'productId', e.target.value)} />
+                        <FormItem label="Product">
+                            <ProductSelector 
+                                value={row.productId} 
+                                onChange={(id) => updateRow(i, 'productId', id)}
+                                placeholder="Search and select product..."
+                            />
                         </FormItem>
                         <div className="flex gap-2">
                             <Button size="sm" variant="twoTone" onClick={() => removeRow(i)}>Remove</Button>

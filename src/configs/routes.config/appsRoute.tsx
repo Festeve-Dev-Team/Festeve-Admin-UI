@@ -204,6 +204,28 @@ const appsRoute: Routes = [
         authority: [ADMIN, USER],
         meta: { header: 'Edit Event (V2)' },
     },
+    // Promos V2
+    {
+        key: 'appsPromosV2.list',
+        path: `${APP_PREFIX_PATH}/promos-v2/promo-list`,
+        component: lazy(() => import('@/views/promosV2/PromoListV2')),
+        authority: [ADMIN, USER],
+        meta: { header: 'Promos V2' },
+    },
+    {
+        key: 'appsPromosV2.new',
+        path: `${APP_PREFIX_PATH}/promos-v2/promo-new`,
+        component: lazy(() => import('@/views/promosV2/PromoCreateV2')),
+        authority: [ADMIN, USER],
+        meta: { header: 'Add New Promo (V2)' },
+    },
+    {
+        key: 'appsPromosV2.edit',
+        path: `${APP_PREFIX_PATH}/promos-v2/promo-edit/:promoId`,
+        component: lazy(() => import('@/views/promosV2/PromoEditV2')),
+        authority: [ADMIN, USER],
+        meta: { header: 'Edit Promo (V2)' },
+    },
     // Offers V2
     {
         key: 'appsOffersV2.list',

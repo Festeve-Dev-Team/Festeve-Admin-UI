@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { eventSchema, defaultEventValues, type EventFormInput } from './schema/eventSchema'
+import { promoSchema, defaultPromoValues, type PromoFormInput } from './schema/promoSchema'
 import { formToApiData, validateFormForSubmission } from './utils'
-import useEvents from './hooks/useEvents'
+import usePromos from './hooks/usePromos'
 import useProducts from '@/utils/hooks/useProducts'
 import { useNavigate } from 'react-router-dom'
 
@@ -12,27 +12,31 @@ import Tabs from '@/components/ui/Tabs'
 import Tag from '@/components/ui/Tag'
 import Button from '@/components/ui/Button'
 import Alert from '@/components/ui/Alert'
-import Switcher from '@/components/ui/Switcher'
 import { FormContainer, FormItem } from '@/components/ui/Form'
 import Input from '@/components/ui/Input'
+import Select from '@/components/ui/Select'
 import DateTimepicker from '@/components/ui/DatePicker/DateTimepicker'
 
-import RecurrenceEditor from './components/RecurrenceEditor'
-import LinkedProductsEditor from './components/LinkedProductsEditor'
-import OffersEditor from './components/OffersEditor'
 import ProductIdsEditor from './components/ProductIdsEditor'
 import ChipsInput from './components/ChipsInput'
-import EventPreview from './components/EventPreview'
+import PromoPreview from './components/PromoPreview'
 
-type Props = { initial?: EventFormInput; onSaved?: (e: EventFormInput) => void; headerTitle?: string }
+type Props = { initial?: PromoFormInput; onSaved?: (e: PromoFormInput) => void; headerTitle?: string }
 
-export default function EventFormV2({ initial, onSaved, headerTitle }: Props) {
+const statusOptions = [
+    { value: 'ACTIVE', label: 'Active' },
+    { value: 'PAUSED', label: 'Paused' },
+    { value: 'EXPIRED', label: 'Expired' },
+    { value: 'ARCHIVED', label: 'Archived' }
+]
+
+export default function PromoFormV2({ initial, onSaved, headerTitle }: Props) {
     const navigate = useNavigate()
     const [isDirtySinceMount, setIsDirtySinceMount] = useState(false)
     const [validationErrors, setValidationErrors] = useState<string[]>([])
     
     // Redux hooks
-    const { createEvent, updateEvent, isCreating, isUpdating, error } = useEvents()
+    const { createPromo, updatePromo, isCreating, isUpdating, error } = usePromos()
     const { 
         products, 
         loadProducts, 
@@ -50,12 +54,11 @@ export default function EventFormV2({ initial, onSaved, headerTitle }: Props) {
         setValue,
         setError,
         clearErrors
-    } = useForm<EventFormInput>({
-        resolver: zodResolver(eventSchema),
+    } = useForm<PromoFormInput>({
+        resolver: zodResolver(promoSchema),
         defaultValues: {
-            ...defaultEventValues,
+            ...defaultPromoValues,
             ...initial,
-            purohitRequired: initial?.purohitRequired ?? defaultEventValues.purohitRequired ?? false
         },
         mode: 'onChange',
     })
@@ -70,16 +73,16 @@ export default function EventFormV2({ initial, onSaved, headerTitle }: Props) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [initial])
 
-    // Load products on mount (same as VendorFormV2)
+    // Load products on mount (same as EventFormV2)
     useEffect(() => {
-        console.log('EventFormV2: Loading products on mount')
+        console.log('PromoFormV2: Loading products on mount')
         loadProducts({ page: 1, limit: 20 })
     }, [loadProducts])
 
     const form = watch()
     const isLoading = isCreating || isUpdating
 
-    async function onSubmit(values: EventFormInput, shouldPublish = false) {
+    async function onSubmit(values: PromoFormInput, shouldPublish = false) {
         try {
             console.log('🚀 Form submission started')
             console.log('📝 Form values:', values)
@@ -103,16 +106,16 @@ export default function EventFormV2({ initial, onSaved, headerTitle }: Props) {
             const apiData = formToApiData(values)
             console.log('🔄 Transformed API data:', apiData)
 
-            // Save event
+            // Save promo
             if (values.id) {
-                console.log('🔄 Updating existing event with ID:', values.id)
-                await updateEvent(values.id, apiData)
+                console.log('🔄 Updating existing promo with ID:', values.id)
+                await updatePromo(values.id, apiData)
             } else {
-                console.log('🔄 Creating new event')
-                await createEvent(apiData)
+                console.log('🔄 Creating new promo')
+                await createPromo(apiData)
             }
 
-            console.log('✅ Event saved successfully!')
+            console.log('✅ Promo saved successfully!')
 
             // Success callback
             onSaved?.(values)
@@ -120,12 +123,12 @@ export default function EventFormV2({ initial, onSaved, headerTitle }: Props) {
 
             // Navigate back to list or stay for further editing
             if (shouldPublish) {
-                console.log('🔄 Navigating to event list')
-                navigate('/app/events-v2/event-list')
+                console.log('🔄 Navigating to promo list')
+                navigate('/app/promos-v2/promo-list')
             }
         } catch (error) {
             console.error('❌ Save failed:', error)
-            setValidationErrors([error instanceof Error ? error.message : 'Failed to save event'])
+            setValidationErrors([error instanceof Error ? error.message : 'Failed to save promo'])
         }
     }
 
@@ -154,7 +157,7 @@ export default function EventFormV2({ initial, onSaved, headerTitle }: Props) {
             <Card className="sticky top-0 z-10" bodyClass="py-3 px-4 md:px-6 lg:px-8 bg-white/80 dark:bg-gray-800/80 backdrop-blur">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <h3 className="text-lg font-semibold">{headerTitle ?? 'New Event'}</h3>
+                        <h3 className="text-lg font-semibold">{headerTitle ?? 'New Promo'}</h3>
                         {isDirtySinceMount && (
                             <Tag className="bg-amber-100 text-amber-800 border border-amber-200 px-2 py-0.5 rounded" suffix suffixClass="bg-red-500" aria-label="Unsaved changes">
                                 Unsaved
@@ -223,21 +226,33 @@ export default function EventFormV2({ initial, onSaved, headerTitle }: Props) {
                             <Tabs.TabList>
                                 <Tabs.TabNav value="basics">Basics</Tabs.TabNav>
                                 <Tabs.TabNav value="schedule">Schedule</Tabs.TabNav>
-                                {/* <Tabs.TabNav value="links">Links</Tabs.TabNav> */}
+                                <Tabs.TabNav value="limits">Limits</Tabs.TabNav>
                                 <Tabs.TabNav value="products">Products</Tabs.TabNav>
-                                <Tabs.TabNav value="regions">Regions</Tabs.TabNav>
-                                <Tabs.TabNav value="purohit">Purohit & Rituals</Tabs.TabNav>
-                                {/* <Tabs.TabNav value="extra">Extra Data</Tabs.TabNav> */}
+                                <Tabs.TabNav value="advanced">Advanced</Tabs.TabNav>
                             </Tabs.TabList>
 
                             <Tabs.TabContent value="basics" className="px-4 pt-3 pb-4">
                                 <div className="mx-auto w-full max-w-5xl space-y-6">
                                     <FormContainer>
-                                        <FormItem label="Name" invalid={!!errors.name} errorMessage={errors.name?.message}><Input {...register('name')} /></FormItem>
-                                        <FormItem label="Description" extra={<span className="text-xs text-gray-500">Max 1000 chars</span>} invalid={!!errors.description} errorMessage={errors.description?.message}>
-                                            <Input asElement="textarea" rows={5} {...register('description')} />
+                                        <FormItem label="Name" invalid={!!errors.name} errorMessage={errors.name?.message}>
+                                            <Input {...register('name')} placeholder="e.g., Black Friday 2024" />
                                         </FormItem>
-                                        <FormItem label="Type"><Input {...register('type')} placeholder="daily / seasonal / festival" /></FormItem>
+                                        <FormItem label="Code" invalid={!!errors.code} errorMessage={errors.code?.message}>
+                                            <Input {...register('code')} placeholder="e.g., BLACKFRIDAY2024" />
+                                        </FormItem>
+                                        <FormItem label="Status" invalid={!!errors.status} errorMessage={errors.status?.message}>
+                                            <Controller name="status" control={control} render={({ field }) => (
+                                                <Select 
+                                                    value={statusOptions.find(opt => opt.value === field.value)}
+                                                    onChange={(option) => field.onChange(option?.value)}
+                                                    options={statusOptions}
+                                                    placeholder="Select status..."
+                                                />
+                                            )} />
+                                        </FormItem>
+                                        <FormItem label="Notes" extra={<span className="text-xs text-gray-500">Max 2000 chars</span>} invalid={!!errors.notes} errorMessage={errors.notes?.message}>
+                                            <Input asElement="textarea" rows={4} {...register('notes')} placeholder="Internal notes about this promo..." />
+                                        </FormItem>
                                     </FormContainer>
                                 </div>
                             </Tabs.TabContent>
@@ -245,22 +260,43 @@ export default function EventFormV2({ initial, onSaved, headerTitle }: Props) {
                             <Tabs.TabContent value="schedule" className="px-4 pt-3 pb-4">
                                 <div className="mx-auto w-full max-w-5xl space-y-6">
                                     <FormContainer>
-                                        <FormItem label="Date (IST)">
-                                            <Controller name="date" control={control} render={({ field }) => (
-                                                <DateTimepicker value={field.value ? new Date(field.value) : null} onChange={(d) => field.onChange(d?.toISOString() ?? '')} />
+                                        <FormItem label="Start Date" invalid={!!errors.startsAt} errorMessage={errors.startsAt?.message}>
+                                            <Controller name="startsAt" control={control} render={({ field }) => (
+                                                <DateTimepicker 
+                                                    value={field.value ? new Date(field.value) : null} 
+                                                    onChange={(d) => field.onChange(d?.toISOString() ?? '')} 
+                                                    placeholder="Select start date & time..."
+                                                />
+                                            )} />
+                                        </FormItem>
+                                        <FormItem label="End Date" invalid={!!errors.endsAt} errorMessage={errors.endsAt?.message}>
+                                            <Controller name="endsAt" control={control} render={({ field }) => (
+                                                <DateTimepicker 
+                                                    value={field.value ? new Date(field.value) : null} 
+                                                    onChange={(d) => field.onChange(d?.toISOString() ?? '')} 
+                                                    placeholder="Select end date & time..."
+                                                />
                                             )} />
                                         </FormItem>
                                     </FormContainer>
-                                    <RecurrenceEditor control={control} watch={watch} />
                                 </div>
                             </Tabs.TabContent>
 
-                            {/* <Tabs.TabContent value="links" className="px-4 pt-3 pb-4">
+                            <Tabs.TabContent value="limits" className="px-4 pt-3 pb-4">
                                 <div className="mx-auto w-full max-w-5xl space-y-6">
-                                    <LinkedProductsEditor value={form.linkedProducts} onChange={(v) => setValue('linkedProducts', v, { shouldDirty: true })} />
-                                    <OffersEditor value={form.specialOffers} onChange={(v) => setValue('specialOffers', v, { shouldDirty: true })} />
+                                    <FormContainer>
+                                        <FormItem label="Global Usage Limit" extra={<span className="text-xs text-gray-500">Total uses across all users</span>} invalid={!!errors.globalLimit} errorMessage={errors.globalLimit?.message}>
+                                            <Input type="number" min="0" {...register('globalLimit', { valueAsNumber: true })} placeholder="e.g., 1000" />
+                                        </FormItem>
+                                        <FormItem label="Per User Limit" extra={<span className="text-xs text-gray-500">Maximum uses per user</span>} invalid={!!errors.perUserLimit} errorMessage={errors.perUserLimit?.message}>
+                                            <Input type="number" min="0" {...register('perUserLimit', { valueAsNumber: true })} placeholder="e.g., 5" />
+                                        </FormItem>
+                                        <FormItem label="Link TTL (seconds)" extra={<span className="text-xs text-gray-500">How long promo links stay valid</span>} invalid={!!errors.linkTTLSeconds} errorMessage={errors.linkTTLSeconds?.message}>
+                                            <Input type="number" min="0" {...register('linkTTLSeconds', { valueAsNumber: true })} placeholder="e.g., 3600 (1 hour)" />
+                                        </FormItem>
+                                    </FormContainer>
                                 </div>
-                            </Tabs.TabContent> */}
+                            </Tabs.TabContent>
 
                             <Tabs.TabContent value="products" className="px-4 pt-3 pb-4">
                                 <div className="mx-auto w-full max-w-5xl space-y-6">
@@ -268,62 +304,22 @@ export default function EventFormV2({ initial, onSaved, headerTitle }: Props) {
                                 </div>
                             </Tabs.TabContent>
 
-                            <Tabs.TabContent value="regions" className="px-4 pt-3 pb-4">
+                            <Tabs.TabContent value="advanced" className="px-4 pt-3 pb-4">
                                 <div className="mx-auto w-full max-w-5xl space-y-6">
                                     <FormContainer>
-                                        <FormItem label="Region (primary)"><Input {...register('region')} /></FormItem>
-                                        <FormItem label="Regions (multiple)"><ChipsInput value={form.regions} onChange={(v) => setValue('regions', v, { shouldDirty: true })} /></FormItem>
-                                        <div className="text-xs text-gray-500">Used for targeted visibility</div>
-                                    </FormContainer>
-                                </div>
-                            </Tabs.TabContent>
-
-                            <Tabs.TabContent value="purohit" className="px-4 pt-3 pb-4">
-                                <div className="mx-auto w-full max-w-5xl space-y-6">
-                                    <FormContainer>
-                                        <FormItem label="Purohit required?">
-                                            <Controller
-                                                name="purohitRequired"
-                                                control={control}
-                                                render={({ field: { value, onChange } }) => {
-                                                    return (
-                                                        <Switcher 
-                                                            checked={Boolean(value)}
-                                                            onChange={(checked, e) => {
-                                                                console.log('🔄 Switch clicked - new value:', checked)
-                                                                onChange(checked)
-                                                            }}
-                                                        />
-                                                    )
-                                                }}
-                                            />
-                                        </FormItem>
-                                        <FormItem label="Ritual notes"><Input asElement="textarea" rows={4} {...register('ritualNotes')} /></FormItem>
-                                    </FormContainer>
-                                </div>
-                            </Tabs.TabContent>
-
-                            {/* <Tabs.TabContent value="extra" className="px-4 pt-3 pb-4">
-                                <div className="mx-auto w-full max-w-5xl space-y-6">
-                                    <FormContainer>
-                                        <FormItem label="Extra Data (JSON)">
-                                            <Input asElement="textarea" rows={8} value={JSON.stringify(form.extraData || {}, null, 2)} onChange={(e) => {
-                                                try { setValue('extraData', JSON.parse(e.target.value), { shouldDirty: true }) } catch {  }
-                                            }} />
+                                        <FormItem label="Tags" extra={<span className="text-xs text-gray-500">For organization and filtering</span>}>
+                                            <ChipsInput value={form.tags} onChange={(v) => setValue('tags', v, { shouldDirty: true })} placeholder="Type a tag and press Enter" />
                                         </FormItem>
                                     </FormContainer>
                                 </div>
-                            </Tabs.TabContent> */}
+                            </Tabs.TabContent>
                         </Tabs>
                     </Card>
                 </div>
                 <div className="lg:col-span-1">
-                    <EventPreview form={form} />
+                    <PromoPreview form={form} />
                 </div>
             </div>
         </div>
     )
 }
-
-
-

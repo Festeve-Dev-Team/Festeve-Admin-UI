@@ -94,6 +94,14 @@ export default function CategoryFormV2({ initial, onSaved, headerTitle }: Props)
             // For level 3, show level 2 categories
             return parentCategories.filter(cat => cat.level === 2)
         }
+        if (selectedLevel === 4) {
+            // For level 4, show level 3 categories
+            return parentCategories.filter(cat => cat.level === 3)
+        }
+        if (selectedLevel === 5) {
+            // For level 5, show level 4 categories
+            return parentCategories.filter(cat => cat.level === 4)
+        }
         return []
     }, [parentCategories, selectedLevel])
 
@@ -289,6 +297,8 @@ export default function CategoryFormV2({ initial, onSaved, headerTitle }: Props)
                                             <option value="1">Level 1 (Root Category)</option>
                                             <option value="2">Level 2 (Subcategory)</option>
                                             <option value="3">Level 3 (Sub-subcategory)</option>
+                                            <option value="4">Level 4 (Sub-sub-subcategory)</option>
+                                            <option value="5">Level 5 (Sub-sub-sub-subcategory)</option>
                                         </select>
                                     </FormItem>
 

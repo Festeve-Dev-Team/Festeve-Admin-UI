@@ -20,53 +20,64 @@
             "sales": "Sales",
             "dashboard": "Dashboard",
             "productList": "Product List",
-            "productListV2": "Product List V2",
+            "productListV2": "Products",
             "productEdit": "Product Edit",
             "productNew": "New Product",
-            "productNewV2": "New Product V2",
-            "orderList": "Order List",
+            "productNewV2": "New Product",
+            "orderList": "Orders",
             "orderDetails": "Order Details"
         },
         "appsSalesV2": {
-            "productListV2": "Product List V2",
-            "productNewV2": "New Product V2"
+            "productListV2": "Products",
+            "productNewV2": "New Product"
         },
         "appsPurohits": {
             "purohits": "Purohits",
-            "purohitsListV2": "Purohits V2",
-            "purohitNewV2": "New Purohit V2"
+            "purohitsListV2": "Purohits",
+            "purohitNewV2": "New Purohit"
         },
         "appsEvents": {
             "events": "Events",
-            "eventsListV2": "Events V2",
-            "eventNewV2": "New Event V2"
+            "eventsListV2": "Events",
+            "eventNewV2": "New Event"
+        },
+        "appsPromos": {
+            "promos": "Promos",
+            "promosListV2": "Promos",
+            "promoNewV2": "New Promo"
+        },
+        "appsCategories": {
+            "categories": "Categories",
+            "categoryListV2": "Categories",
+            "categoryNewV2": "New Category"
         },
         "appsOffers": {
             "offers": "Offers",
-            "offersListV2": "Offers V2",
-            "offerNewV2": "New Offer V2"
+            "offersListV2": "Offers",
+            "offerNewV2": "New Offer"
         },
         "appsHomepage": {
             "homepage": "Homepage",
-            "configureV2": "Homepage Configure V2"
+            "configureV2": "Homepage Configure"
         },
         "appsBookings": {
             "bookings": "Bookings",
-            "bookingsListV2": "Bookings V2",
-            "bookingNewV2": "New Booking V2"
+            "bookingsListV2": "Bookings",
+            "bookingNewV2": "New Booking"
         },
         "appsPayments": {
             "payments": "Payments",
-            "paymentsListV2": "Payments V2",
-            "paymentNewV2": "New Payment V2"
+            "paymentsListV2": "Payments",
+            "paymentNewV2": "New Payment"
         },
         "appsDelivery": {
             "delivery": "Delivery",
-            "slotNewV2": "New Slot V2"
+            "slotNewV2": "New Slot"
         },
         "appsVendors": {
             "vendors": "Vendors",
-            "vendorNewV2": "New Vendor V2"
+            "vendorListV2": "Vendors",
+            "vendorNewV2": "New Vendor"
         },
         "appsCrypto": {
             "crypto": "Crypto",

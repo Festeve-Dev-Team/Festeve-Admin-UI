@@ -4,9 +4,11 @@ import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Switcher from '@/components/ui/Switcher'
 import { FormContainer, FormItem } from '@/components/ui/Form'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { variantSchema, type VariantFormInput } from '../schema/productSchema'
+import ImagesUploader from './ImagesUploader'
+import DownloadableFileUploader from './DownloadableFileUploader'
 
 type Props = {
     open: boolean
@@ -49,6 +51,8 @@ export default function VariantDrawer({ open, initial, onClose, onSubmit }: Prop
                 height: undefined,
                 unit: ''
             },
+            isDownloadable: false,
+            downloadUrl: '',
         },
     })
 
@@ -256,10 +260,38 @@ export default function VariantDrawer({ open, initial, onClose, onSubmit }: Prop
                             </FormItem>
                         </div>
                     </div>
+                    
+                    {/* Images Section */}
+                    <div className="mt-6">
+                        <ImagesUploader
+                            value={watch('images') || []}
+                            onChange={(images) => setValue('images', images, { shouldDirty: true })}
+                        />
+                    </div>
+
+                    {/* Downloadable File Section */}
+                    <div className="mt-6">
+                        <DownloadableFileUploader
+                            isDownloadable={watch('isDownloadable') || false}
+                            downloadUrl={watch('downloadUrl') || ''}
+                            onIsDownloadableChange={(isDownloadable) => {
+                                console.log('🔄 Variant: Setting isDownloadable to:', isDownloadable)
+                                setValue('isDownloadable', isDownloadable, { shouldDirty: true })
+                            }}
+                            onDownloadUrlChange={(downloadUrl) => {
+                                console.log('🔄 Variant: Setting downloadUrl to:', downloadUrl)
+                                setValue('downloadUrl', downloadUrl, { shouldDirty: true })
+                            }}
+                        />
+                    </div>
+
                     <FormItem label="Active">
                         <Switcher 
                             checked={watch('isActive')}
-                            onChange={(checked) => setValue('isActive', checked, { shouldDirty: true })}
+                            onChange={(checked, e) => {
+                                console.log('🔄 Variant: Setting isActive to:', checked)
+                                setValue('isActive', checked, { shouldDirty: true })
+                            }}
                         />
                     </FormItem>
                 </FormContainer>

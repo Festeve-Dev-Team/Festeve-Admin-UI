@@ -22,7 +22,6 @@ import Alert from '@/components/ui/Alert'
 import VariantsGrid from './components/VariantsGrid'
 import RightRailPreview from './components/RightRailPreview'
 import MetaJsonEditor from './components/MetaJsonEditor'
-import ImagesUploader from './components/ImagesUploader'
 import CategorySelector from './components/CategorySelector'
 
 type Props = {
@@ -310,14 +309,9 @@ export default function ProductFormV2({ initial, onSaved, headerTitle }: Props) 
                                 value={form.variants}
                                 onChange={(v) => setValue('variants', v, { shouldDirty: true, shouldTouch: true, shouldValidate: true })}
                             />
-                            <ImagesUploader
-                                value={form.variants[0]?.images ?? []}
-                                onChange={(imgs) => {
-                                    const next = [...form.variants]
-                                    if (next[0]) next[0] = { ...next[0], images: imgs }
-                                    setValue('variants', next as ProductFormInput['variants'], { shouldDirty: true })
-                                }}
-                            />
+                            <div className="text-sm text-gray-500 bg-blue-50 dark:bg-blue-900/20 p-3 rounded border border-blue-200 dark:border-blue-800">
+                                <strong>💡 Tip:</strong> Click "Edit" on any variant above to upload images and configure downloadable files for that specific variant.
+                            </div>
                         </Tabs.TabContent>
 
                         <Tabs.TabContent value="offers" className="p-4 space-y-4">

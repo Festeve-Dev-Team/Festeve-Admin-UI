@@ -35,6 +35,9 @@ export const variantSchema = z.object({
     material: z.string().optional(),
     weight: z.number().min(0, 'Weight must be positive').optional(),
     dimensions: dimensionsSchema,
+    // Downloadable product fields
+    isDownloadable: z.boolean().default(false),
+    downloadUrl: z.string().url('Download URL must be a valid URL').optional(),
 }).superRefine((variant, ctx) => {
     if (variant.discountType === 'percentage' && variant.discountValue !== undefined) {
         if (variant.discountValue < 0 || variant.discountValue > 100) {
@@ -53,6 +56,14 @@ export const variantSchema = z.object({
                 message: 'Fixed discount must be less than price',
             })
         }
+    }
+    // Validate downloadable product requirements
+    if (variant.isDownloadable && !variant.downloadUrl) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['downloadUrl'],
+            message: 'Download URL is required for downloadable products',
+        })
     }
 })
 
@@ -131,7 +142,32 @@ export const defaultProductValues: ProductFormInput = {
     isHotItem: false,
     ingredients: [],
     vendors: [],
-    variants: [], // Start with empty variants array since they're optional
+    variants: [
+        {
+            sku: '',
+            specs: {},
+            price: 0,
+            stock: 0,
+            discountType: 'none',
+            discountValue: 0,
+            images: [],
+            isActive: true,
+            size: 'Custom',
+            color: '',
+            colorCode: '#FFFFFF',
+            colorFamily: '',
+            material: '',
+            weight: 0,
+            dimensions: {
+                length: 0,
+                width: 0,
+                height: 0,
+                unit: 'cm'
+            },
+            isDownloadable: false,
+            downloadUrl: '',
+        }
+    ],
     defaultDiscountType: 'none',
     defaultDiscountValue: 0,
     linkedEvents: [],

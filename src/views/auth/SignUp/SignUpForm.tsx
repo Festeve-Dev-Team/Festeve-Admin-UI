@@ -25,6 +25,7 @@ type SignUpFormSchema = {
     phone: string
     referralCode: string
     confirmPassword: string
+    role: 'admin' | 'user'
 }
 
 const validationSchema = Yup.object().shape({
@@ -41,6 +42,7 @@ const validationSchema = Yup.object().shape({
         'Your passwords do not match',
     ),
     referralCode: Yup.string(), // Optional field
+    role: Yup.string().oneOf(['admin', 'user']).required('Role is required'),
 })
 
 const SignUpForm = (props: SignUpFormProps) => {
@@ -57,7 +59,7 @@ const SignUpForm = (props: SignUpFormProps) => {
         values: SignUpFormSchema,
         setSubmitting: (isSubmitting: boolean) => void,
     ) => {
-        const { name, password, email, phone, referralCode } = values
+        const { name, password, email, phone, referralCode, role } = values
         setSubmitting(true)
         
         const signUpData = {
@@ -69,6 +71,7 @@ const SignUpForm = (props: SignUpFormProps) => {
             password,
             profilePicture: '',
             referralCode: referralCode || '',
+            role: role || 'admin', // Force admin role
         }
         
         const result = await signUp(signUpData)
@@ -146,6 +149,7 @@ const SignUpForm = (props: SignUpFormProps) => {
                     email: '',
                     phone: '',
                     referralCode: '',
+                    role: 'admin' as const, // Default to admin role
                 }}
                 validationSchema={validationSchema}
                 onSubmit={(values, { setSubmitting }) => {
@@ -159,6 +163,18 @@ const SignUpForm = (props: SignUpFormProps) => {
                 {({ touched, errors, isSubmitting }) => (
                     <Form>
                         <FormContainer>
+                            {/* Admin Registration Notice */}
+                            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-blue-600 font-medium">🔐 Admin Registration</span>
+                                </div>
+                                <p className="text-sm text-blue-700 mt-1">
+                                    This form is for admin account creation only.
+                                </p>
+                            </div>
+                            
+                            {/* Hidden role field to ensure admin role */}
+                            <Field type="hidden" name="role" value="admin" />
                             <FormItem
                                 label="Full Name"
                                 invalid={errors.name && touched.name}
@@ -225,7 +241,7 @@ const SignUpForm = (props: SignUpFormProps) => {
                                     component={PasswordInput}
                                 />
                             </FormItem>
-                            <FormItem
+                            {/* <FormItem
                                 label="Referral Code (Optional)"
                                 invalid={errors.referralCode && touched.referralCode}
                                 errorMessage={errors.referralCode}
@@ -237,7 +253,7 @@ const SignUpForm = (props: SignUpFormProps) => {
                                     placeholder="Referral Code"
                                     component={Input}
                                 />
-                            </FormItem>
+                            </FormItem> */}
                             <Button
                                 block
                                 loading={isSubmitting}

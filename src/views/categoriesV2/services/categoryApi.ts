@@ -16,17 +16,26 @@ export async function createCategory(categoryData: CategoryDto): Promise<Categor
     }
 }
 
-export async function updateCategory(id: string, categoryData: CategoryDto): Promise<CategoryWithId> {
+export async function updateCategory(id: string, categoryData: Partial<CategoryDto>): Promise<CategoryWithId> {
     try {
+        // Remove any fields that shouldn't be sent to API
+        const cleanData = { ...categoryData }
+        if ('id' in cleanData) {
+            delete (cleanData as any).id
+        }
+        if ('_id' in cleanData) {
+            delete (cleanData as any)._id
+        }
+
         const response = await ApiService.fetchData({
             url: `/categories/${id}`,
-            method: 'PUT',
-            data: categoryData,
+            method: 'PATCH', // Changed from PUT to PATCH
+            data: cleanData,
         })
         return response.data as CategoryWithId
     } catch (error) {
         console.error('Failed to update category:', error)
-        throw new Error('Failed to update category')
+        throw error
     }
 }
 
@@ -83,14 +92,28 @@ export async function getCategories(params: {
 
 export async function getCategory(id: string): Promise<CategoryWithId> {
     try {
+        console.log('🚀 API - Fetching category with ID:', id)
         const response = await ApiService.fetchData({
             url: `/categories/${id}`,
             method: 'GET',
         })
-        return response.data as CategoryWithId
+        
+        console.log('📥 API - Category response:', response)
+        
+        if (response.data) {
+            const categoryWithId = {
+                ...response.data,
+                id: response.data._id || response.data.id || id
+            }
+            console.log('✅ API - Category with ID added:', categoryWithId)
+            return categoryWithId as CategoryWithId
+        }
+        
+        console.log('⚠️ API - No data in category response')
+        throw new Error('No category data received')
     } catch (error) {
-        console.error('Failed to fetch category:', error)
-        throw new Error('Failed to fetch category')
+        console.error('❌ API - Error fetching category:', error)
+        throw error
     }
 }
 

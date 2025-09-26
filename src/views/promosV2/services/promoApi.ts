@@ -37,32 +37,43 @@ export async function createPromo(promoData: PromoDto): Promise<PromoWithId> {
 
 export async function updatePromo(id: string, promoData: Partial<PromoDto>): Promise<PromoWithId> {
     try {
+        // Remove any fields that shouldn't be sent to API
+        const cleanData = { ...promoData }
+        if ('id' in cleanData) {
+            delete (cleanData as any).id
+        }
+        if ('_id' in cleanData) {
+            delete (cleanData as any)._id
+        }
+
         // Transform data to match the expected API format
         const apiPayload: any = {}
         
-        if (promoData.name) apiPayload.name = promoData.name
-        if (promoData.code) apiPayload.code = promoData.code
-        if (promoData.status !== undefined) apiPayload.status = promoData.status
-        if (promoData.startsAt !== undefined) apiPayload.startsAt = promoData.startsAt
-        if (promoData.endsAt !== undefined) apiPayload.endsAt = promoData.endsAt
-        if (promoData.globalLimit !== undefined) apiPayload.globalLimit = promoData.globalLimit
-        if (promoData.perUserLimit !== undefined) apiPayload.perUserLimit = promoData.perUserLimit
-        if (promoData.productIds) apiPayload.productIds = promoData.productIds
-        if (promoData.linkTTLSeconds !== undefined) apiPayload.linkTTLSeconds = promoData.linkTTLSeconds
-        if (promoData.tags) apiPayload.tags = promoData.tags
-        if (promoData.notes !== undefined) apiPayload.notes = promoData.notes
+        if (cleanData.name) apiPayload.name = cleanData.name
+        if (cleanData.code) apiPayload.code = cleanData.code
+        if (cleanData.status !== undefined) apiPayload.status = cleanData.status
+        if (cleanData.startsAt !== undefined) apiPayload.startsAt = cleanData.startsAt
+        if (cleanData.endsAt !== undefined) apiPayload.endsAt = cleanData.endsAt
+        if (cleanData.globalLimit !== undefined) apiPayload.globalLimit = cleanData.globalLimit
+        if (cleanData.perUserLimit !== undefined) apiPayload.perUserLimit = cleanData.perUserLimit
+        if (cleanData.productIds) apiPayload.productIds = cleanData.productIds
+        if (cleanData.linkTTLSeconds !== undefined) apiPayload.linkTTLSeconds = cleanData.linkTTLSeconds
+        if (cleanData.tags) apiPayload.tags = cleanData.tags
+        if (cleanData.notes !== undefined) apiPayload.notes = cleanData.notes
 
-        console.log('Updating promo with payload:', JSON.stringify(apiPayload, null, 2))
+        console.log('🌐 API: Updating promo with payload:', JSON.stringify(apiPayload, null, 2))
 
         const response = await ApiService.fetchData({
-            url: `/referrals/promos/${id}`,
-            method: 'PUT',
+            url: `/referrals/promos/${id}`, // Keep the /referrals prefix consistent
+            method: 'PATCH', // Changed from PUT to PATCH
             data: apiPayload,
         })
+        
+        console.log('🌐 API: Update promo response:', response)
         return response.data as PromoWithId
     } catch (error) {
         console.error('Failed to update promo:', error)
-        throw new Error('Failed to update promo')
+        throw error
     }
 }
 
@@ -118,14 +129,28 @@ export async function getPromos(params: {
 
 export async function getPromo(id: PromoId): Promise<PromoWithId> {
     try {
+        console.log('🚀 API - Fetching promo with ID:', id)
         const response = await ApiService.fetchData({
-            url: `/referrals/promos/${id}`,
+            url: `/referrals/promos/${id}`, // Keep the /referrals prefix consistent
             method: 'GET',
         })
-        return response.data as PromoWithId
+        
+        console.log('📥 API - Promo response:', response)
+        
+        if (response.data) {
+            const promoWithId = {
+                ...response.data,
+                id: response.data._id || response.data.id || id
+            }
+            console.log('✅ API - Promo with ID added:', promoWithId)
+            return promoWithId as PromoWithId
+        }
+        
+        console.log('⚠️ API - No data in promo response')
+        throw new Error('No promo data received')
     } catch (error) {
-        console.error('Failed to fetch promo:', error)
-        throw new Error('Failed to fetch promo')
+        console.error('❌ API - Error fetching promo:', error)
+        throw error
     }
 }
 

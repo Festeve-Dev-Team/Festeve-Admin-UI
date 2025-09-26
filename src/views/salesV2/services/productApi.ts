@@ -74,15 +74,15 @@ export async function saveProduct(
     try {
         const isUpdate = 'id' in dto && dto.id
         const url = isUpdate ? `/products/${dto.id}` : '/products'
-        const method = isUpdate ? 'put' : 'post'
+        const method = isUpdate ? 'patch' : 'post'
         
-        // Convert id back to _id for API
+        // Remove frontend-specific fields that shouldn't be sent to API
         const apiData = { ...dto }
         if ('id' in apiData) {
             delete apiData.id
         }
-        if (isUpdate && '_id' in dto) {
-            apiData._id = (dto as any).id || (dto as any)._id
+        if ('_id' in apiData) {
+            delete (apiData as any)._id
         }
         
         const response = await ApiService.fetchData<Product>({

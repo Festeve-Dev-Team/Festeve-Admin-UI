@@ -57,15 +57,29 @@ export default function CategoryFormV2({ initial, onSaved, headerTitle }: Props)
         mode: 'onChange',
     })
 
+    const [hasInitialized, setHasInitialized] = useState(false)
+    const [lastInitialId, setLastInitialId] = useState<string | null>(null)
+
     useEffect(() => {
         const subscription = watch(() => setIsDirtySinceMount(true))
         return () => subscription.unsubscribe()
     }, [watch])
 
     useEffect(() => {
-        if (initial) reset(initial)
+        // Reset initialization flag if we're editing a different category
+        if (initial?.id && initial.id !== lastInitialId) {
+            setHasInitialized(false)
+            setLastInitialId(initial.id)
+        }
+        
+        // Only reset the form once when initial data is first provided
+        if (initial && !hasInitialized) {
+            console.log('🔄 CategoryForm - Initializing form with data:', initial)
+            reset(initial)
+            setHasInitialized(true)
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [initial])
+    }, [initial, hasInitialized, lastInitialId])
 
     // Load parent categories when component mounts and when level changes
     useEffect(() => {
@@ -107,6 +121,11 @@ export default function CategoryFormV2({ initial, onSaved, headerTitle }: Props)
 
     async function onSubmit(values: CategoryFormInput, shouldPublish = false) {
         try {
+            console.log('🚀 CategoryForm - Form submission started')
+            console.log('📋 CategoryForm - Form values:', values)
+            console.log('🔍 CategoryForm - values.id:', values.id)
+            console.log('🔍 CategoryForm - initial data:', initial)
+            
             // Clear previous validation errors
             setValidationErrors([])
             clearErrors()
@@ -126,15 +145,18 @@ export default function CategoryFormV2({ initial, onSaved, headerTitle }: Props)
 
             // Transform form data to API format
             const apiData = formToApiData(values)
+            console.log('📦 CategoryForm - API data prepared:', apiData)
 
             // Save category
             if (values.id) {
-                // Update existing category
+                console.log('🔄 CategoryForm - Updating existing category with ID:', values.id)
                 await updateCategory(values.id, apiData)
             } else {
-                // Create new category
+                console.log('✨ CategoryForm - Creating new category')
                 await createCategory(apiData)
             }
+
+            console.log('✅ CategoryForm - Category saved successfully')
 
             // Success callback
             onSaved?.(values)
@@ -145,7 +167,7 @@ export default function CategoryFormV2({ initial, onSaved, headerTitle }: Props)
                 navigate('/app/categories-v2/category-list')
             }
         } catch (error) {
-            console.error('Save failed:', error)
+            console.error('💥 CategoryForm - Save failed:', error)
             setValidationErrors([error instanceof Error ? error.message : 'Failed to save category'])
         }
     }

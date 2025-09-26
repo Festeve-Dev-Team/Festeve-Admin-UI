@@ -46,6 +46,7 @@ export function formToApiData(formData: OfferFormInput): OfferDto {
 export function apiToFormData(apiData: OfferWithId): OfferFormInput & { id: string } {
     const {
         id,
+        _id,
         title,
         description,
         type,
@@ -60,23 +61,23 @@ export function apiToFormData(apiData: OfferWithId): OfferFormInput & { id: stri
         endDate,
         combinable,
         conditions
-    } = apiData
+    } = apiData as any
 
     return {
-        id,
-        title,
+        id: id || _id, // Use id if available, fallback to _id
+        title: title || '',
         description: description || '',
-        type,
-        discountType,
-        discountValue,
+        type: type || 'percentage_discount',
+        discountType: discountType || 'percentage',
+        discountValue: discountValue || 0,
         comboItems: comboItems || [],
-        appliesTo,
+        appliesTo: appliesTo || 'product',
         targetIds: targetIds || [],
-        minGroupSize,
-        maxGroupSize,
-        startDate,
-        endDate,
-        combinable,
+        minGroupSize: minGroupSize || 1,
+        maxGroupSize: maxGroupSize || 1,
+        startDate: startDate || '',
+        endDate: endDate || '',
+        combinable: combinable || false,
         conditions: conditions || {}
     }
 }

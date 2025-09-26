@@ -46,6 +46,7 @@ export function formToApiData(formData: PurohitFormInput): Purohit {
 export function apiToFormData(apiData: PurohitWithId): PurohitFormInput & { id: string } {
     const {
         id,
+        _id,
         name,
         phone,
         location,
@@ -60,24 +61,24 @@ export function apiToFormData(apiData: PurohitWithId): PurohitFormInput & { id: 
         commissionType,
         commissionValue,
         isActive
-    } = apiData
+    } = apiData as any
 
     return {
-        id,
-        name,
-        phone,
-        location,
-        experienceYears,
+        id: id || _id, // Use id if available, fallback to _id
+        name: name || '',
+        phone: phone || '',
+        location: location || { city: '', state: '', pincode: '' },
+        experienceYears: experienceYears || 0,
         skills: skills || [],
         availability: availability || [],
         bio: bio || '',
         customSkills: customSkills || {},
         rituals: rituals || [],
         languages: languages || [],
-        chargesCommission,
-        commissionType,
-        commissionValue,
-        isActive
+        chargesCommission: chargesCommission || false,
+        commissionType: commissionType || 'percentage',
+        commissionValue: commissionValue || 0,
+        isActive: isActive !== false // Default to true
     }
 }
 

@@ -40,6 +40,7 @@ export function formToApiData(formData: PromoFormInput): PromoDto {
 export function apiToFormData(apiData: PromoWithId): PromoFormInput & { id: string } {
     const {
         id,
+        _id,
         name,
         code,
         status,
@@ -51,19 +52,19 @@ export function apiToFormData(apiData: PromoWithId): PromoFormInput & { id: stri
         linkTTLSeconds,
         tags,
         notes
-    } = apiData
+    } = apiData as any
 
     return {
-        id,
-        name,
-        code,
+        id: id || _id, // Use id if available, fallback to _id
+        name: name || '',
+        code: code || '',
         status: status || 'ACTIVE',
         startsAt: startsAt || '',
         endsAt: endsAt || '',
-        globalLimit,
-        perUserLimit,
+        globalLimit: globalLimit || undefined,
+        perUserLimit: perUserLimit || undefined,
         productIds: productIds || [],
-        linkTTLSeconds,
+        linkTTLSeconds: linkTTLSeconds || undefined,
         tags: tags || [],
         notes: notes || ''
     }

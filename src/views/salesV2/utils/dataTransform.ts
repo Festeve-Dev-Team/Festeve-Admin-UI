@@ -30,8 +30,7 @@ export function formToApiData(formData: ProductFormInput): Omit<Product, '_id'> 
         const cleanVariant: any = {
             sku: variant.sku,
             specs: variant.specs,
-            price: variant.price,
-            stock: variant.stock,
+            stock: Math.max(0, variant.stock || 0), // Ensure stock is not negative
             images: variant.images,
             isActive: variant.isActive,
             size: variant.size,
@@ -39,14 +38,27 @@ export function formToApiData(formData: ProductFormInput): Omit<Product, '_id'> 
             colorCode: variant.colorCode,
             colorFamily: variant.colorFamily,
             material: variant.material,
-            weight: variant.weight,
-            dimensions: variant.dimensions
+            dimensions: variant.dimensions,
+            isDownloadable: variant.isDownloadable,
+            downloadUrl: variant.downloadUrl
+        }
+        
+        // Only include price if it's positive (greater than 0)
+        if (variant.price && variant.price > 0) {
+            cleanVariant.price = variant.price
+        }
+        
+        // Only include weight if it's positive
+        if (variant.weight && variant.weight > 0) {
+            cleanVariant.weight = variant.weight
         }
         
         // Only include discountType and discountValue if discountType is not 'none'
         if (variant.discountType && variant.discountType !== 'none') {
             cleanVariant.discountType = variant.discountType
-            cleanVariant.discountValue = variant.discountValue
+            if (variant.discountValue && variant.discountValue > 0) {
+                cleanVariant.discountValue = variant.discountValue
+            }
         }
         
         // Remove undefined values
@@ -79,36 +91,53 @@ export function formToApiData(formData: ProductFormInput): Omit<Product, '_id'> 
         })
     }
 
-    const baseData = {
-        name,
-        description,
-        categoryId: category, // Map frontend 'category' to backend 'categoryId'
-        tags,
-        isHotItem,
-        ingredients,
-        variants: transformedVariants,
-        // Don't send defaultDiscountType if it's 'none'
-        ...(defaultDiscountType && defaultDiscountType !== 'none' && { defaultDiscountType }),
-        defaultDiscountValue,
-        linkedEvents,
-        offerType: offerType || 'exclusive_offer',
-        offerStart: offerStart ? new Date(offerStart).toISOString() : undefined,
-        offerEnd: offerEnd ? new Date(offerEnd).toISOString() : undefined,
-        isTrending,
-        meta: transformedMeta
-        // Removed: createdAt, updatedAt, __v - backend will handle these
-    } as any
-
-    // If editing existing product, include ID
-    if (id) {
-        return {
-            ...baseData,
-            _id: id,
-            id
-        } as ProductWithId
+    // Only include fields that are allowed by the UpdateProductDto
+    const baseData: any = {}
+    
+    // Helper function to filter out empty strings from arrays
+    const filterEmptyStrings = (arr: string[]) => arr.filter(item => item && item.trim() !== '')
+    
+    // Required/optional fields from UpdateProductDto
+    if (name) baseData.name = name
+    if (description) baseData.description = description
+    if (category) baseData.categoryId = category  // Use categoryId as per DTO
+    
+    // Only include arrays if they have non-empty values
+    if (tags && tags.length > 0) {
+        const filteredTags = filterEmptyStrings(tags)
+        if (filteredTags.length > 0) baseData.tags = filteredTags
     }
+    
+    if (typeof isHotItem === 'boolean') baseData.isHotItem = isHotItem
+    
+    if (ingredients && ingredients.length > 0) {
+        const filteredIngredients = filterEmptyStrings(ingredients)
+        if (filteredIngredients.length > 0) baseData.ingredients = filteredIngredients
+    }
+    
+    if (vendors && vendors.length > 0) {
+        const filteredVendors = filterEmptyStrings(vendors)
+        if (filteredVendors.length > 0) baseData.vendors = filteredVendors
+    }
+    
+    if (transformedVariants && transformedVariants.length > 0) baseData.variants = transformedVariants
+    if (defaultDiscountType && defaultDiscountType !== 'none') baseData.defaultDiscountType = defaultDiscountType
+    if (typeof defaultDiscountValue === 'number' && defaultDiscountValue > 0) baseData.defaultDiscountValue = defaultDiscountValue // Only include if positive
+    
+    if (linkedEvents && linkedEvents.length > 0) {
+        const filteredEvents = filterEmptyStrings(linkedEvents)
+        if (filteredEvents.length > 0) baseData.linkedEvents = filteredEvents
+    }
+    
+    if (offerType) baseData.offerType = offerType
+    if (offerStart) baseData.offerStart = new Date(offerStart).toISOString()
+    if (offerEnd) baseData.offerEnd = new Date(offerEnd).toISOString()
+    if (typeof isTrending === 'boolean') baseData.isTrending = isTrending
+    if (transformedMeta && Object.keys(transformedMeta).length > 0) baseData.meta = transformedMeta
 
-    return baseData as Omit<Product, '_id'>
+    // For editing existing products, return the clean data WITHOUT _id or id fields
+    // The API service will handle the URL routing using the ID
+    return baseData
 }
 
 /**
@@ -121,6 +150,7 @@ export function apiToFormData(apiData: ProductWithId | Product): ProductFormInpu
         description,
         category,
         categoryId,
+        assignedCategoryId, // New field from API
         tags,
         isHotItem,
         ingredients,
@@ -152,14 +182,16 @@ export function apiToFormData(apiData: ProductWithId | Product): ProductFormInpu
         colorFamily: variant.colorFamily,
         material: variant.material,
         weight: variant.weight,
-        dimensions: variant.dimensions
+        dimensions: variant.dimensions,
+        isDownloadable: variant.isDownloadable || false,
+        downloadUrl: variant.downloadUrl || ''
     }))
 
     return {
         id: ('id' in apiData) ? apiData.id : _id,
-        name,
-        description,
-        category: categoryId || category || '', // Use categoryId if available, fallback to category
+        name: name || '',
+        description: description || '',
+        category: assignedCategoryId || categoryId || category || '', // Priority: assignedCategoryId > categoryId > category
         tags: tags || [],
         isHotItem: isHotItem || false,
         ingredients: ingredients || [],

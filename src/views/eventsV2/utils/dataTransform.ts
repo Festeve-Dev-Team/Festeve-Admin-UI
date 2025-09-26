@@ -44,6 +44,7 @@ export function formToApiData(formData: EventFormInput): EventDto {
 export function apiToFormData(apiData: EventWithId): EventFormInput & { id: string } {
     const {
         id,
+        _id,
         name,
         description,
         type,
@@ -57,21 +58,21 @@ export function apiToFormData(apiData: EventWithId): EventFormInput & { id: stri
         specialOffers,
         productIds,
         extraData
-    } = apiData
+    } = apiData as any
 
     return {
-        id,
-        name,
+        id: id || _id, // Use id if available, fallback to _id
+        name: name || '',
         description: description || '',
-        type,
-        date,
+        type: type || '',
+        date: date || '',
         recurring: {
-            isRecurring: recurring.isRecurring,
-            frequency: recurring.frequency,
-            daysOfWeek: recurring.daysOfWeek || []
+            isRecurring: recurring?.isRecurring || false,
+            frequency: recurring?.frequency || 'daily',
+            daysOfWeek: recurring?.daysOfWeek || []
         },
         linkedProducts: linkedProducts || [],
-        purohitRequired,
+        purohitRequired: purohitRequired || false,
         ritualNotes: ritualNotes || '',
         region: region || '',
         regions: regions || [],

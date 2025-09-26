@@ -63,15 +63,29 @@ export default function PromoFormV2({ initial, onSaved, headerTitle }: Props) {
         mode: 'onChange',
     })
 
+    const [hasInitialized, setHasInitialized] = useState(false)
+    const [lastInitialId, setLastInitialId] = useState<string | null>(null)
+
     useEffect(() => {
         const subscription = watch(() => setIsDirtySinceMount(true))
         return () => subscription.unsubscribe()
     }, [watch])
 
     useEffect(() => {
-        if (initial) reset(initial)
+        // Reset initialization flag if we're editing a different promo
+        if (initial?.id && initial.id !== lastInitialId) {
+            setHasInitialized(false)
+            setLastInitialId(initial.id)
+        }
+        
+        // Only reset the form once when initial data is first provided
+        if (initial && !hasInitialized) {
+            console.log('🔄 PromoForm - Initializing form with data:', initial)
+            reset(initial)
+            setHasInitialized(true)
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [initial])
+    }, [initial, hasInitialized, lastInitialId])
 
     // Load products on mount (same as EventFormV2)
     useEffect(() => {
@@ -84,38 +98,38 @@ export default function PromoFormV2({ initial, onSaved, headerTitle }: Props) {
 
     async function onSubmit(values: PromoFormInput, shouldPublish = false) {
         try {
-            console.log('🚀 Form submission started')
-            console.log('📝 Form values:', values)
-            console.log('📤 Should publish:', shouldPublish)
+            console.log('🚀 PromoForm - Form submission started')
+            console.log('📝 PromoForm - Form values:', values)
+            console.log('🔍 PromoForm - values.id:', (values as any).id)
+            console.log('🔍 PromoForm - initial data:', initial)
             
             // Clear previous validation errors
             setValidationErrors([])
             clearErrors()
 
             // Validate form data
-            console.log('✅ Running form validation...')
             const formValidation = validateFormForSubmission(values)
             if (!formValidation.isValid) {
-                console.log('❌ Form validation failed:', formValidation.errors)
+                console.log('❌ PromoForm - Form validation failed:', formValidation.errors)
                 setValidationErrors(formValidation.errors)
                 return
             }
-            console.log('✅ Form validation passed')
 
             // Transform form data to API format
             const apiData = formToApiData(values)
-            console.log('🔄 Transformed API data:', apiData)
+            console.log('📦 PromoForm - API data prepared:', apiData)
 
-            // Save promo
-            if (values.id) {
-                console.log('🔄 Updating existing promo with ID:', values.id)
-                await updatePromo(values.id, apiData)
+            // Save promo - check for ID to determine create vs update
+            const promoId = (values as any).id || initial?.id
+            if (promoId) {
+                console.log('🔄 PromoForm - Updating existing promo with ID:', promoId)
+                await updatePromo(promoId, apiData)
             } else {
-                console.log('🔄 Creating new promo')
+                console.log('✨ PromoForm - Creating new promo')
                 await createPromo(apiData)
             }
 
-            console.log('✅ Promo saved successfully!')
+            console.log('✅ PromoForm - Promo saved successfully')
 
             // Success callback
             onSaved?.(values)
@@ -123,11 +137,10 @@ export default function PromoFormV2({ initial, onSaved, headerTitle }: Props) {
 
             // Navigate back to list or stay for further editing
             if (shouldPublish) {
-                console.log('🔄 Navigating to promo list')
                 navigate('/app/promos-v2/promo-list')
             }
         } catch (error) {
-            console.error('❌ Save failed:', error)
+            console.error('💥 PromoForm - Save failed:', error)
             setValidationErrors([error instanceof Error ? error.message : 'Failed to save promo'])
         }
     }

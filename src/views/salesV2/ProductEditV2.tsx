@@ -11,7 +11,7 @@ export default function ProductEditV2() {
     const [initial, setInitial] = useState<ProductFormInput | null>(null)
     const [loading, setLoading] = useState(true)
     
-    const { loadProduct, selectedProduct, isProductLoading, error } = useProducts()
+    const { loadProduct, selectedProduct, isProductLoading, error, products } = useProducts()
 
     useEffect(() => {
         if (!productId) {
@@ -19,11 +19,24 @@ export default function ProductEditV2() {
             return
         }
         
+        // First, check if the product is already in the Redux store
+        const existingProduct = products.find(p => p.id === productId || (p as any)._id === productId)
+        if (existingProduct) {
+            try {
+                const formData = apiToFormData(existingProduct)
+                setInitial(formData)
+                setLoading(false)
+                return
+            } catch (error) {
+                console.error('Error transforming product data from Redux:', error)
+            }
+        }
+        // If not in store, fetch from API
         loadProduct(productId)
-    }, [productId, loadProduct, navigate])
+    }, [productId, loadProduct, navigate, products])
 
     useEffect(() => {
-        if (selectedProduct && selectedProduct.id === productId) {
+        if (selectedProduct && (selectedProduct.id === productId || (selectedProduct as any)._id === productId)) {
             try {
                 const formData = apiToFormData(selectedProduct)
                 setInitial(formData)
@@ -32,14 +45,28 @@ export default function ProductEditV2() {
                 console.error('Error transforming product data:', error)
                 setLoading(false)
             }
+        } else if (!isProductLoading && !selectedProduct && productId && !initial) {
+            setLoading(false)
         }
-    }, [selectedProduct, productId])
+    }, [selectedProduct, productId, isProductLoading, error, initial])
 
     if (loading || isProductLoading) {
         return (
             <div className="flex items-center justify-center h-64">
                 <div className="text-lg">Loading product...</div>
             </div>
+        )
+    }
+
+    // If we have initial data, show the form even if there's an error
+    // (the error might be from a different product or stale state)
+    if (initial) {
+        return (
+            <ProductFormV2
+                initial={initial}
+                headerTitle={initial.name || 'Edit Product'}
+                onSaved={() => navigate('/app/sales-v2/product-list')}
+            />
         )
     }
 
@@ -51,20 +78,10 @@ export default function ProductEditV2() {
         )
     }
 
-    if (!initial) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <div className="text-gray-600">Product not found</div>
-            </div>
-        )
-    }
-
     return (
-        <ProductFormV2
-            initial={initial}
-            headerTitle={initial.name || 'Edit Product'}
-            onSaved={() => navigate('/app/sales-v2/product-list')}
-        />
+        <div className="flex items-center justify-center h-64">
+            <div className="text-gray-600">Product not found</div>
+        </div>
     )
 }
 

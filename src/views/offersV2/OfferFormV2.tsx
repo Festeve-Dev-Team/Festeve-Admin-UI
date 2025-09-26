@@ -3,6 +3,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { offerSchema, defaultOfferValues, type OfferFormInput } from './schema/offerSchema'
 import { formToApiData, validateFormForSubmission } from './utils/dataTransform'
+import useOffers from './hooks/useOffers'
 import { useNavigate } from 'react-router-dom'
 import type { OfferWithId } from './types/offer'
 
@@ -19,7 +20,6 @@ import TargetSelector from './components/TargetSelector'
 import ScheduleEditor from './components/ScheduleEditor'
 import GroupRulePanel from './components/GroupRulePanel'
 import OfferPreview from './components/OfferPreview'
-import useOffers from './hooks/useOffers'
 
 type Props = { initial?: OfferWithId; onSaved?: (o: OfferWithId) => void; headerTitle?: string }
 
@@ -46,50 +46,67 @@ export default function OfferFormV2({ initial, onSaved, headerTitle }: Props) {
         mode: 'onChange',
     })
 
+    const [hasInitialized, setHasInitialized] = useState(false)
+    const [lastInitialId, setLastInitialId] = useState<string | null>(null)
+
     useEffect(() => {
         const subscription = watch(() => setIsDirtySinceMount(true))
         return () => subscription.unsubscribe()
     }, [watch])
 
-    useEffect(() => { if (initial) reset(initial) }, [initial, reset])
+    useEffect(() => {
+        // Reset initialization flag if we're editing a different offer
+        if (initial?.id && initial.id !== lastInitialId) {
+            setHasInitialized(false)
+            setLastInitialId(initial.id)
+        }
+        
+        // Only reset the form once when initial data is first provided
+        if (initial && !hasInitialized) {
+            console.log('🔄 OfferForm - Initializing form with data:', initial)
+            reset(initial)
+            setHasInitialized(true)
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [initial, hasInitialized, lastInitialId])
     
             const form = watch()
 
     async function onSubmit(values: OfferFormInput, shouldPublish = false) {
         try {
-            console.log('🚀 Form submission started')
-            console.log('📝 Form values:', values)
-            console.log('📤 Should publish:', shouldPublish)
+            console.log('🚀 OfferForm - Form submission started')
+            console.log('📝 OfferForm - Form values:', values)
+            console.log('🔍 OfferForm - values.id:', (values as any).id)
+            console.log('🔍 OfferForm - initial data:', initial)
             
             // Clear previous validation errors
             setValidationErrors([])
             clearErrors()
 
             // Validate form data
-            console.log('✅ Running form validation...')
             const formValidation = validateFormForSubmission(values)
             if (!formValidation.isValid) {
-                console.log('❌ Form validation failed:', formValidation.errors)
+                console.log('❌ OfferForm - Form validation failed:', formValidation.errors)
                 setValidationErrors(formValidation.errors)
                 return
             }
-            console.log('✅ Form validation passed')
 
             // Transform form data to API format
             const apiData = formToApiData(values)
-            console.log('🔄 Transformed API data:', apiData)
+            console.log('📦 OfferForm - API data prepared:', apiData)
 
-            // Save offer
+            // Save offer - check for ID to determine create vs update
+            const offerId = (values as any).id || initial?.id
             let savedOffer: OfferWithId
-            if (initial?.id) {
-                console.log('🔄 Updating existing offer with ID:', initial.id)
-                savedOffer = await updateOffer(initial.id, apiData)
+            if (offerId) {
+                console.log('🔄 OfferForm - Updating existing offer with ID:', offerId)
+                savedOffer = await updateOffer(offerId, apiData)
             } else {
-                console.log('🔄 Creating new offer')
+                console.log('✨ OfferForm - Creating new offer')
                 savedOffer = await createOffer(apiData)
             }
 
-            console.log('✅ Offer saved successfully!')
+            console.log('✅ OfferForm - Offer saved successfully')
 
             // Success callback
             onSaved?.(savedOffer)
@@ -97,11 +114,10 @@ export default function OfferFormV2({ initial, onSaved, headerTitle }: Props) {
 
             // Navigate back to list or stay for further editing
             if (shouldPublish) {
-                console.log('🔄 Navigating to offer list')
                 navigate('/app/offers-v2/offer-list')
             }
         } catch (error) {
-            console.error('❌ Save failed:', error)
+            console.error('💥 OfferForm - Save failed:', error)
             setValidationErrors([error instanceof Error ? error.message : 'Failed to save offer'])
         }
     }    const slug = (form.title || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')

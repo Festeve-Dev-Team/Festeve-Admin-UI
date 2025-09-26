@@ -21,15 +21,27 @@ export async function createVendor(vendorData: Omit<VendorDto, 'ratings'>): Prom
 
 export async function updateVendor(id: string, vendorData: Omit<VendorDto, 'ratings'>): Promise<VendorWithId> {
     try {
+        // Remove any fields that shouldn't be sent to API
+        const cleanData = { ...vendorData }
+        if ('id' in cleanData) {
+            delete (cleanData as any).id
+        }
+        if ('_id' in cleanData) {
+            delete (cleanData as any)._id
+        }
+        if ('ratings' in cleanData) {
+            delete (cleanData as any).ratings
+        }
+
         const response = await ApiService.fetchData({
             url: `/vendors/${id}`,
-            method: 'PUT',
-            data: vendorData,
+            method: 'PATCH', // Changed from PUT to PATCH
+            data: cleanData,
         })
         return response.data as VendorWithId
     } catch (error) {
         console.error('Failed to update vendor:', error)
-        throw new Error('Failed to update vendor')
+        throw error
     }
 }
 
@@ -72,14 +84,28 @@ export async function getVendors(params: {
 
 export async function getVendor(id: string): Promise<VendorWithId> {
     try {
+        console.log('🚀 API - Fetching vendor with ID:', id)
         const response = await ApiService.fetchData({
             url: `/vendors/${id}`,
             method: 'GET',
         })
-        return response.data as VendorWithId
+        
+        console.log('📥 API - Vendor response:', response)
+        
+        if (response.data) {
+            const vendorWithId = {
+                ...response.data,
+                id: response.data._id || response.data.id || id
+            }
+            console.log('✅ API - Vendor with ID added:', vendorWithId)
+            return vendorWithId as VendorWithId
+        }
+        
+        console.log('⚠️ API - No data in vendor response')
+        throw new Error('No vendor data received')
     } catch (error) {
-        console.error('Failed to fetch vendor:', error)
-        throw new Error('Failed to fetch vendor')
+        console.error('❌ API - Error fetching vendor:', error)
+        throw error
     }
 }
 

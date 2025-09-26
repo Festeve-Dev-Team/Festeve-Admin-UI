@@ -4,22 +4,32 @@ import type { CategoryWithId, CategoryDto } from '../types/category'
 /**
  * Transform form data to API format
  */
-export function formToApiData(formData: CategoryFormInput): CategoryDto {
+export function formToApiData(formData: CategoryFormInput): Partial<CategoryDto> {
     const {
         name,
+        slug,
         isActive,
         parentId,
         displayOrder,
+        image,
         attributes
     } = formData
 
-    return {
-        name,
-        isActive,
-        parentId: parentId || null, // Ensure null instead of undefined
-        displayOrder,
-        attributes
+    // Only include fields that have values
+    const baseData: Partial<CategoryDto> = {}
+    
+    if (name && name.trim()) baseData.name = name.trim()
+    if (slug && slug.trim()) baseData.slug = slug.trim()
+    if (typeof isActive === 'boolean') baseData.isActive = isActive
+    if (parentId) baseData.parentId = parentId
+    if (typeof displayOrder === 'number' && displayOrder >= 0) baseData.displayOrder = displayOrder
+    if (image && image.trim()) baseData.image = image.trim()
+    if (attributes && attributes.length > 0) {
+        const filteredAttributes = attributes.filter(attr => attr && attr.trim() !== '')
+        if (filteredAttributes.length > 0) baseData.attributes = filteredAttributes
     }
+
+    return baseData
 }
 
 /**
@@ -28,19 +38,24 @@ export function formToApiData(formData: CategoryFormInput): CategoryDto {
 export function apiToFormData(apiData: CategoryWithId): CategoryFormInput {
     const {
         id,
+        _id,
         name,
+        slug,
         isActive,
         parentId,
         displayOrder,
+        image,
         attributes
-    } = apiData
-
+    } = apiData as any
+    
     return {
-        id,
-        name,
-        isActive,
-        parentId,
-        displayOrder,
+        id: id || _id, // Use id if available, fallback to _id
+        name: name || '',
+        slug: slug || '',
+        isActive: isActive !== false, // Default to true
+        parentId: parentId || null,
+        displayOrder: displayOrder || 0,
+        image: image || '',
         attributes: attributes || []
     }
 }

@@ -52,53 +52,67 @@ export default function PurohitFormV2({ initial, onSaved, headerTitle }: Props) 
         mode: 'onChange',
     })
 
+    const [hasInitialized, setHasInitialized] = useState(false)
+    const [lastInitialId, setLastInitialId] = useState<string | null>(null)
+
     useEffect(() => {
         const subscription = watch(() => setIsDirtySinceMount(true))
         return () => subscription.unsubscribe()
     }, [watch])
 
     useEffect(() => {
-        if (initial) reset(initial)
+        // Reset initialization flag if we're editing a different purohit
+        if (initial?.id && initial.id !== lastInitialId) {
+            setHasInitialized(false)
+            setLastInitialId(initial.id)
+        }
+        
+        // Only reset the form once when initial data is first provided
+        if (initial && !hasInitialized) {
+            console.log('🔄 PurohitForm - Initializing form with data:', initial)
+            reset(initial)
+            setHasInitialized(true)
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [initial])
+    }, [initial, hasInitialized, lastInitialId])
 
     const form = watch()
     const isLoading = isCreating || isUpdating
 
     async function onSubmit(values: PurohitFormInput, shouldPublish = false) {
         try {
-            console.log('🚀 Form submission started')
-            console.log('📝 Form values:', values)
-            console.log('📤 Should publish:', shouldPublish)
+            console.log('🚀 PurohitForm - Form submission started')
+            console.log('📝 PurohitForm - Form values:', values)
+            console.log('🔍 PurohitForm - values.id:', (values as any).id)
+            console.log('🔍 PurohitForm - initial data:', initial)
             
             // Clear previous validation errors
             setValidationErrors([])
             clearErrors()
 
             // Validate form data
-            console.log('✅ Running form validation...')
             const formValidation = validateFormForSubmission(values)
             if (!formValidation.isValid) {
-                console.log('❌ Form validation failed:', formValidation.errors)
+                console.log('❌ PurohitForm - Form validation failed:', formValidation.errors)
                 setValidationErrors(formValidation.errors)
                 return
             }
-            console.log('✅ Form validation passed')
 
             // Transform form data to API format
             const apiData = formToApiData(values)
-            console.log('🔄 Transformed API data:', apiData)
+            console.log('📦 PurohitForm - API data prepared:', apiData)
 
-            // Save purohit
-            if ((values as any).id) {
-                console.log('🔄 Updating existing purohit with ID:', (values as any).id)
-                await updatePurohit((values as any).id, apiData)
+            // Save purohit - check for ID to determine create vs update
+            const purohitId = (values as any).id || initial?.id
+            if (purohitId) {
+                console.log('🔄 PurohitForm - Updating existing purohit with ID:', purohitId)
+                await updatePurohit(purohitId, apiData)
             } else {
-                console.log('🔄 Creating new purohit')
+                console.log('✨ PurohitForm - Creating new purohit')
                 await createPurohit(apiData)
             }
 
-            console.log('✅ Purohit saved successfully!')
+            console.log('✅ PurohitForm - Purohit saved successfully')
 
             // Success callback
             onSaved?.(values)
@@ -106,11 +120,10 @@ export default function PurohitFormV2({ initial, onSaved, headerTitle }: Props) 
 
             // Navigate back to list or stay for further editing
             if (shouldPublish) {
-                console.log('🔄 Navigating to purohit list')
                 navigate('/app/purohits-v2/purohit-list')
             }
         } catch (error) {
-            console.error('❌ Save failed:', error)
+            console.error('💥 PurohitForm - Save failed:', error)
             setValidationErrors([error instanceof Error ? error.message : 'Failed to save purohit'])
         }
     }

@@ -22,19 +22,28 @@ export async function createOffer(offerData: OfferDto): Promise<OfferWithId> {
 
 export async function updateOffer(id: string, offerData: Partial<OfferDto>): Promise<OfferWithId> {
     try {
-        console.log('🌐 API: Updating offer with payload:', JSON.stringify(offerData, null, 2))
+        // Remove any fields that shouldn't be sent to API
+        const cleanData = { ...offerData }
+        if ('id' in cleanData) {
+            delete (cleanData as any).id
+        }
+        if ('_id' in cleanData) {
+            delete (cleanData as any)._id
+        }
+
+        console.log('🌐 API: Updating offer with payload:', JSON.stringify(cleanData, null, 2))
 
         const response = await ApiService.fetchData({
             url: `/offers/${id}`,
-            method: 'PUT',
-            data: offerData,
+            method: 'PATCH', // Changed from PUT to PATCH
+            data: cleanData,
         })
         
         console.log('🌐 API: Update offer response:', response)
         return response.data as OfferWithId
     } catch (error) {
         console.error('Failed to update offer:', error)
-        throw new Error('Failed to update offer')
+        throw error
     }
 }
 
@@ -91,14 +100,28 @@ export async function getOffers(params: {
 
 export async function getOffer(id: OfferId): Promise<OfferWithId> {
     try {
+        console.log('🚀 API - Fetching offer with ID:', id)
         const response = await ApiService.fetchData({
             url: `/offers/${id}`,
             method: 'GET',
         })
-        return response.data as OfferWithId
+        
+        console.log('📥 API - Offer response:', response)
+        
+        if (response.data) {
+            const offerWithId = {
+                ...response.data,
+                id: response.data._id || response.data.id || id
+            }
+            console.log('✅ API - Offer with ID added:', offerWithId)
+            return offerWithId as OfferWithId
+        }
+        
+        console.log('⚠️ API - No data in offer response')
+        throw new Error('No offer data received')
     } catch (error) {
-        console.error('Failed to fetch offer:', error)
-        throw new Error('Failed to fetch offer')
+        console.error('❌ API - Error fetching offer:', error)
+        throw error
     }
 }
 

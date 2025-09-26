@@ -60,15 +60,29 @@ export default function EventFormV2({ initial, onSaved, headerTitle }: Props) {
         mode: 'onChange',
     })
 
+    const [hasInitialized, setHasInitialized] = useState(false)
+    const [lastInitialId, setLastInitialId] = useState<string | null>(null)
+
     useEffect(() => {
         const subscription = watch(() => setIsDirtySinceMount(true))
         return () => subscription.unsubscribe()
     }, [watch])
 
     useEffect(() => {
-        if (initial) reset(initial)
+        // Reset initialization flag if we're editing a different event
+        if (initial?.id && initial.id !== lastInitialId) {
+            setHasInitialized(false)
+            setLastInitialId(initial.id)
+        }
+        
+        // Only reset the form once when initial data is first provided
+        if (initial && !hasInitialized) {
+            console.log('🔄 EventForm - Initializing form with data:', initial)
+            reset(initial)
+            setHasInitialized(true)
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [initial])
+    }, [initial, hasInitialized, lastInitialId])
 
     // Load products on mount (same as VendorFormV2)
     useEffect(() => {
@@ -81,38 +95,38 @@ export default function EventFormV2({ initial, onSaved, headerTitle }: Props) {
 
     async function onSubmit(values: EventFormInput, shouldPublish = false) {
         try {
-            console.log('🚀 Form submission started')
-            console.log('📝 Form values:', values)
-            console.log('📤 Should publish:', shouldPublish)
+            console.log('🚀 EventForm - Form submission started')
+            console.log('📝 EventForm - Form values:', values)
+            console.log('🔍 EventForm - values.id:', (values as any).id)
+            console.log('🔍 EventForm - initial data:', initial)
             
             // Clear previous validation errors
             setValidationErrors([])
             clearErrors()
 
             // Validate form data
-            console.log('✅ Running form validation...')
             const formValidation = validateFormForSubmission(values)
             if (!formValidation.isValid) {
-                console.log('❌ Form validation failed:', formValidation.errors)
+                console.log('❌ EventForm - Form validation failed:', formValidation.errors)
                 setValidationErrors(formValidation.errors)
                 return
             }
-            console.log('✅ Form validation passed')
 
             // Transform form data to API format
             const apiData = formToApiData(values)
-            console.log('🔄 Transformed API data:', apiData)
+            console.log('📦 EventForm - API data prepared:', apiData)
 
-            // Save event
-            if (values.id) {
-                console.log('🔄 Updating existing event with ID:', values.id)
-                await updateEvent(values.id, apiData)
+            // Save event - check for ID to determine create vs update
+            const eventId = (values as any).id || initial?.id
+            if (eventId) {
+                console.log('🔄 EventForm - Updating existing event with ID:', eventId)
+                await updateEvent(eventId, apiData)
             } else {
-                console.log('🔄 Creating new event')
+                console.log('✨ EventForm - Creating new event')
                 await createEvent(apiData)
             }
 
-            console.log('✅ Event saved successfully!')
+            console.log('✅ EventForm - Event saved successfully')
 
             // Success callback
             onSaved?.(values)
@@ -120,11 +134,10 @@ export default function EventFormV2({ initial, onSaved, headerTitle }: Props) {
 
             // Navigate back to list or stay for further editing
             if (shouldPublish) {
-                console.log('🔄 Navigating to event list')
                 navigate('/app/events-v2/event-list')
             }
         } catch (error) {
-            console.error('❌ Save failed:', error)
+            console.error('💥 EventForm - Save failed:', error)
             setValidationErrors([error instanceof Error ? error.message : 'Failed to save event'])
         }
     }

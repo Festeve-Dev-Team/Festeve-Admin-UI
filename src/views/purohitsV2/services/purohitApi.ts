@@ -22,19 +22,28 @@ export async function createPurohit(purohitData: Purohit): Promise<PurohitWithId
 
 export async function updatePurohit(id: string, purohitData: Partial<Purohit>): Promise<PurohitWithId> {
     try {
-        console.log('🌐 API: Updating purohit with payload:', JSON.stringify(purohitData, null, 2))
+        // Remove any fields that shouldn't be sent to API
+        const cleanData = { ...purohitData }
+        if ('id' in cleanData) {
+            delete (cleanData as any).id
+        }
+        if ('_id' in cleanData) {
+            delete (cleanData as any)._id
+        }
+
+        console.log('🌐 API: Updating purohit with payload:', JSON.stringify(cleanData, null, 2))
 
         const response = await ApiService.fetchData({
             url: `/purohits/${id}`,
-            method: 'PUT',
-            data: purohitData,
+            method: 'PATCH', // Changed from PUT to PATCH
+            data: cleanData,
         })
         
         console.log('🌐 API: Update purohit response:', response)
         return response.data as PurohitWithId
     } catch (error) {
         console.error('Failed to update purohit:', error)
-        throw new Error('Failed to update purohit')
+        throw error
     }
 }
 
@@ -92,14 +101,28 @@ export async function getPurohits(params: {
 
 export async function getPurohit(id: PurohitId): Promise<PurohitWithId> {
     try {
+        console.log('🚀 API - Fetching purohit with ID:', id)
         const response = await ApiService.fetchData({
             url: `/purohits/${id}`,
             method: 'GET',
         })
-        return response.data as PurohitWithId
+        
+        console.log('📥 API - Purohit response:', response)
+        
+        if (response.data) {
+            const purohitWithId = {
+                ...response.data,
+                id: response.data._id || response.data.id || id
+            }
+            console.log('✅ API - Purohit with ID added:', purohitWithId)
+            return purohitWithId as PurohitWithId
+        }
+        
+        console.log('⚠️ API - No data in purohit response')
+        throw new Error('No purohit data received')
     } catch (error) {
-        console.error('Failed to fetch purohit:', error)
-        throw new Error('Failed to fetch purohit')
+        console.error('❌ API - Error fetching purohit:', error)
+        throw error
     }
 }
 

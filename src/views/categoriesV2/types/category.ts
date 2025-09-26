@@ -5,11 +5,13 @@ export type CategoryPath = {
 }
 
 export type CategoryDto = {
-    name: string
-    isActive: boolean
-    parentId: string | null
-    displayOrder: number
-    attributes: string[]
+    name?: string
+    slug?: string // Auto-generated if not provided
+    parentId?: string | null
+    isActive?: boolean
+    displayOrder?: number
+    image?: string // Category image URL
+    attributes?: string[]
 }
 
 export type CategoryWithId = CategoryDto & {

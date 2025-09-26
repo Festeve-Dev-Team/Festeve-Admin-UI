@@ -48,49 +48,60 @@ export async function createEvent(eventData: EventDto): Promise<EventWithId> {
 
 export async function updateEvent(id: string, eventData: Partial<EventDto>): Promise<EventWithId> {
     try {
+        // Remove any fields that shouldn't be sent to API
+        const cleanData = { ...eventData }
+        if ('id' in cleanData) {
+            delete (cleanData as any).id
+        }
+        if ('_id' in cleanData) {
+            delete (cleanData as any)._id
+        }
+
         // Transform data to match the expected API format
         const apiPayload: any = {}
         
-        if (eventData.name) apiPayload.name = eventData.name
-        if (eventData.description !== undefined) apiPayload.description = eventData.description
-        if (eventData.type) apiPayload.type = eventData.type
-        if (eventData.date) apiPayload.date = eventData.date
-        if (eventData.recurring) {
+        if (cleanData.name) apiPayload.name = cleanData.name
+        if (cleanData.description !== undefined) apiPayload.description = cleanData.description
+        if (cleanData.type) apiPayload.type = cleanData.type
+        if (cleanData.date) apiPayload.date = cleanData.date
+        if (cleanData.recurring) {
             apiPayload.recurring = {
-                isRecurring: eventData.recurring.isRecurring,
-                frequency: eventData.recurring.frequency || 'daily',
-                daysOfWeek: eventData.recurring.daysOfWeek || [0]
+                isRecurring: cleanData.recurring.isRecurring,
+                frequency: cleanData.recurring.frequency || 'daily',
+                daysOfWeek: cleanData.recurring.daysOfWeek || [0]
             }
         }
-        if (eventData.linkedProducts) {
-            apiPayload.linkedProducts = eventData.linkedProducts.map(lp => ({
+        if (cleanData.linkedProducts) {
+            apiPayload.linkedProducts = cleanData.linkedProducts.map(lp => ({
                 productId: lp.productId,
                 relation: lp.relation
             }))
         }
-        if (eventData.purohitRequired !== undefined) apiPayload.purohitRequired = eventData.purohitRequired
-        if (eventData.ritualNotes !== undefined) apiPayload.ritualNotes = eventData.ritualNotes
-        if (eventData.region !== undefined) apiPayload.region = eventData.region
-        if (eventData.regions) apiPayload.regions = eventData.regions
-        if (eventData.specialOffers) {
-            apiPayload.specialOffers = eventData.specialOffers.map(so => ({
+        if (cleanData.purohitRequired !== undefined) apiPayload.purohitRequired = cleanData.purohitRequired
+        if (cleanData.ritualNotes !== undefined) apiPayload.ritualNotes = cleanData.ritualNotes
+        if (cleanData.region !== undefined) apiPayload.region = cleanData.region
+        if (cleanData.regions) apiPayload.regions = cleanData.regions
+        if (cleanData.specialOffers) {
+            apiPayload.specialOffers = cleanData.specialOffers.map(so => ({
                 offerType: so.offerType,
                 productId: so.productId
             }))
         }
-        if (eventData.extraData !== undefined) apiPayload.extraData = eventData.extraData
+        if (cleanData.extraData !== undefined) apiPayload.extraData = cleanData.extraData
 
-        console.log('Updating event with payload:', JSON.stringify(apiPayload, null, 2))
+        console.log('🌐 API: Updating event with payload:', JSON.stringify(apiPayload, null, 2))
 
         const response = await ApiService.fetchData({
             url: `/events/${id}`,
-            method: 'PUT',
+            method: 'PATCH', // Changed from PUT to PATCH
             data: apiPayload,
         })
+        
+        console.log('🌐 API: Update event response:', response)
         return response.data as EventWithId
     } catch (error) {
         console.error('Failed to update event:', error)
-        throw new Error('Failed to update event')
+        throw error
     }
 }
 
@@ -146,14 +157,28 @@ export async function getEvents(params: {
 
 export async function getEvent(id: EventId): Promise<EventWithId> {
     try {
+        console.log('🚀 API - Fetching event with ID:', id)
         const response = await ApiService.fetchData({
             url: `/events/${id}`,
             method: 'GET',
         })
-        return response.data as EventWithId
+        
+        console.log('📥 API - Event response:', response)
+        
+        if (response.data) {
+            const eventWithId = {
+                ...response.data,
+                id: response.data._id || response.data.id || id
+            }
+            console.log('✅ API - Event with ID added:', eventWithId)
+            return eventWithId as EventWithId
+        }
+        
+        console.log('⚠️ API - No data in event response')
+        throw new Error('No event data received')
     } catch (error) {
-        console.error('Failed to fetch event:', error)
-        throw new Error('Failed to fetch event')
+        console.error('❌ API - Error fetching event:', error)
+        throw error
     }
 }
 

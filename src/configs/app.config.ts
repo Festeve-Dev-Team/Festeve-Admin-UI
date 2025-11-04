@@ -8,7 +8,7 @@ export type AppConfig = {
 }
 
 const appConfig: AppConfig = {
-    apiPrefix: import.meta.env.VITE_API_BASE || '/api',
+    apiPrefix: "https://s2kgcih5db.execute-api.ap-south-1.amazonaws.com/dev" || '/api',
     authenticatedEntryPath: '/app/sales/dashboard',
     unAuthenticatedEntryPath: '/sign-in',
     tourPath: '/app/account/kyc-form',
